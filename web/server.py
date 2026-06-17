@@ -24,9 +24,9 @@ BASE = Path(__file__).resolve().parent
 STATE_FILE = BASE / "oracle_state.json"
 STATIC = BASE / "static"
 
-# x402 买方（官方 Go client + 预置买方密钥）配置。
-X402_REPO = "/tmp/casper-x402"
-BUYER_KEY = "/Users/yunhai/Projects/casper-rwa-oracle-agent/x402/keys-buyer/secret_key.pem"
+# x402 买方（官方 Go client + 预置买方密钥）配置，均可用环境变量覆盖。
+X402_REPO = os.environ.get("X402_REPO", "/tmp/casper-x402")
+BUYER_KEY = os.environ.get("X402_BUYER_KEY", str(BASE.parent / "x402" / "keys-buyer" / "secret_key.pem"))
 
 app = FastAPI(title="Casper RWA Oracle Dashboard")
 
@@ -51,7 +51,7 @@ def x402_buy() -> JSONResponse:
         "CLIENT_KEY_ALGO": "ed25519",
         "CAIP2_CHAIN_ID": "casper:casper-test",
         "SERVER_URL": "http://localhost:4021",
-        "PATH": "/opt/homebrew/bin:" + os.environ.get("PATH", ""),
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", ""),
     }
     try:
         result = subprocess.run(

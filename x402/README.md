@@ -68,6 +68,7 @@ FACILITATOR_URL=http://localhost:4022 \
 CAIP2_CHAIN_ID=casper:casper-test \
 ASSET_PACKAGE=8c5535f6f005c6e47d54372c22eb9af6fcb8e21e098f49af7b9e88123dd07a61 \
 ASSET_NAME="Casper X402 Token" \
+ORACLE_STATE_FILE=/path/to/casper-rwa-oracle-agent/web/oracle_state.json \
 go run ./examples/server          # :4021 — x402-gated /oracle
 ```
 

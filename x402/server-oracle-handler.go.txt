@@ -18,7 +18,12 @@ routes := x402http.RoutesConfig{
 // examples/server/main.go — handler: return our agent-written oracle snapshot
 // ─────────────────────────────────────────────────────────────────────────────
 r.GET("/oracle", func(c *ginfw.Context) {
-    data, err := os.ReadFile("/path/to/casper-rwa-oracle-agent/web/oracle_state.json")
+    // 数据快照路径由 ORACLE_STATE_FILE 环境变量指定（指向 web/oracle_state.json）。
+    statePath := os.Getenv("ORACLE_STATE_FILE")
+    if statePath == "" {
+        statePath = "oracle_state.json"
+    }
+    data, err := os.ReadFile(statePath)
     if err != nil {
         c.JSON(http.StatusOK, ginfw.H{"error": "no oracle data yet — run the agent first"})
         return
