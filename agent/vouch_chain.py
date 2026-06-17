@@ -45,7 +45,18 @@ def _run(step: str, secret_key: str, extra: dict) -> str:
         text=True,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"vouch[{step}] 链上调用失败：\n{result.stderr.strip()}")
+        stderr = result.stderr.strip()
+        # Odra livenet 偶发：合约已在链上执行成功，但本地提取事件数据时 panic
+        # （CouldntExtractEventData）。该 panic 发生在执行之后，链上状态已变更，
+        # 因此不可重试（会重复记账/重复改信誉）。按"已执行"处理，仍返回已捕获的
+        # stdout（含交易 URL / 返回值），交由调用方读回链上状态核验真实结果。
+        if "CouldntExtractEventData" in stderr:
+            print(
+                f"⚠️  vouch[{step}] 链上已执行，但 Odra 本地读事件失败"
+                f"（CouldntExtractEventData，节点偶发）；按已执行处理，将读回链上核验。"
+            )
+            return result.stdout.strip()
+        raise RuntimeError(f"vouch[{step}] 链上调用失败：\n{stderr}")
     return result.stdout.strip()
 
 
@@ -75,7 +86,16 @@ def submit_claim(
         },
     )
     m = re.search(r"claim_id=(\d+)", out)
-    return {"claim_id": int(m.group(1)) if m else None, "tx": _tx_url(out)}
+    if not m:
+        # 仅当 _run 容忍了 CouldntExtractEventData（claim 已上链但本地读事件 panic、
+        # println 未执行）才会到这里。合约无 get_claim_count getter 无法读回 id，
+        # 故失败即抛——绝不返回 None，否则下游 CLAIM_ID 会被 trust_e2e 回退成 claim#0、
+        # 把裁决误打到无关 claim 上。
+        raise RuntimeError(
+            "submit_claim：交易可能已上链但无法从输出解析 claim_id"
+            "（Odra 偶发读事件失败）。请到 cspr.live 核对该笔交易后重跑本轮。"
+        )
+    return {"claim_id": int(m.group(1)), "tx": _tx_url(out)}
 
 
 def record_verdict(
@@ -102,13 +122,116 @@ def record_verdict(
 
 
 def get_agent(secret_key: str, agent_id: int) -> dict:
-    """读取某 agent 的链上状态（信誉/质押/状态）。"""
+    """读取某 agent 的链上状态（信誉/质押/状态/到期时间）。"""
     out = _run("agent", secret_key, {"AGENT_ID": agent_id})
-    rep = re.search(r"reputation=(\d+)", out)
-    stake = re.search(r"stake=(\d+)", out)
-    status = re.search(r"status=(\d+)", out)
+
+    def _int(pattern: str) -> int | None:
+        m = re.search(pattern, out)
+        return int(m.group(1)) if m else None
+
     return {
-        "reputation": int(rep.group(1)) if rep else None,
-        "stake": int(stake.group(1)) if stake else None,
-        "status": int(status.group(1)) if status else None,
+        "reputation": _int(r"reputation=(\d+)"),
+        "stake": _int(r"stake=(\d+)"),
+        "price_per_day": _int(r"price=(\d+)"),
+        "status": _int(r"status=(\d+)"),
+        "lock_until": _int(r"lock_until=(\d+)"),
     }
+
+
+# ---------- 雇佣托管（Consumer / 验证网络 / keeper） ----------
+
+
+def approve(secret_key: str, amount: int) -> dict:
+    """调用者对 registry 授权动用 amount（最小单位）；Consumer 托管前必须先 approve。"""
+    out = _run("approve", secret_key, {"AMOUNT": amount})
+    return {"tx": _tx_url(out)}
+
+
+def create_hire(
+    secret_key: str,
+    agent_id: int,
+    days: int,
+    milestones: int,
+    sla_hash: str = "sla-hash",
+) -> dict:
+    """Consumer 雇佣某 Provider：托管 price_per_day×days，按 milestones 个里程碑结算。"""
+    out = _run(
+        "hire",
+        secret_key,
+        {"AGENT_ID": agent_id, "DAYS": days, "MILESTONES": milestones, "SLA": sla_hash},
+    )
+    m = re.search(r"hire_id=(\d+)", out)
+    if m:
+        hire_id = int(m.group(1))
+    else:
+        # _run 容忍了 CouldntExtractEventData（hire 已上链但本地读事件 panic、println 未执行）。
+        # 用链上 hire_count-1 读回刚创建的 hire_id，绝不返回 None（否则下游 HIRE_ID 会被
+        # trust_e2e 回退成 hire#0、把记履约/结算误打到无关雇佣单上）。
+        hire_id = get_hire_count(secret_key) - 1
+        print(f"⚠️  create_hire：输出无 hire_id，读回链上 hire_count 恢复为 hire#{hire_id}")
+    return {"hire_id": hire_id, "tx": _tx_url(out)}
+
+
+def record_hire_verdict(
+    secret_key: str,
+    hire_id: int,
+    milestones_passed: int,
+    reason: str = "sla-eval",
+) -> dict:
+    """验证网络按客观 SLA 把已通过的里程碑数写上链。"""
+    out = _run(
+        "hverdict",
+        secret_key,
+        {"HIRE_ID": hire_id, "PASSED": milestones_passed, "REASON": reason},
+    )
+    return {"tx": _tx_url(out)}
+
+
+def settle_hire(secret_key: str, hire_id: int) -> dict:
+    """按已通过里程碑结算放款给 Provider（扣佣金）。仅验证网络可调。"""
+    out = _run("settle", secret_key, {"HIRE_ID": hire_id})
+    return {"tx": _tx_url(out)}
+
+
+def refund_hire(secret_key: str, hire_id: int) -> dict:
+    """不达标：退未交付托管给 Consumer + 罚没 Provider 押金赔付。仅验证网络可调。"""
+    out = _run("refund", secret_key, {"HIRE_ID": hire_id})
+    return {"tx": _tx_url(out)}
+
+
+def release_expired_stake(secret_key: str, agent_id: int) -> dict:
+    """到期返还剩余押金到原付款地址（keeper 自动触发）。"""
+    out = _run("release", secret_key, {"AGENT_ID": agent_id})
+    return {"tx": _tx_url(out)}
+
+
+def get_hire(secret_key: str, hire_id: int) -> dict:
+    """读取某雇佣单的链上状态（keeper 扫描用）。"""
+    out = _run("hire_info", secret_key, {"HIRE_ID": hire_id})
+
+    def _int(pattern: str) -> int | None:
+        m = re.search(pattern, out)
+        return int(m.group(1)) if m else None
+
+    return {
+        "provider": _int(r"provider=(\d+)"),
+        "total": _int(r"total=(\d+)"),
+        "escrow": _int(r"escrow=(\d+)"),
+        "settled": _int(r"settled=(\d+)"),
+        "milestones_passed": _int(r"milestones=(\d+)/"),
+        "milestones_total": _int(r"milestones=\d+/(\d+)"),
+        "status": _int(r"status=(\d+)"),
+        "ends_at": _int(r"ends_at=(\d+)"),
+    }
+
+
+def get_hire_count(secret_key: str) -> int:
+    out = _run("hire_count", secret_key, {})
+    m = re.search(r"hire_count=(\d+)", out)
+    return int(m.group(1)) if m else 0
+
+
+def get_agent_count(secret_key: str) -> int:
+    out = _run("agent_count", secret_key, {})
+    m = re.search(r"agent_count=(\d+)", out)
+    return int(m.group(1)) if m else 0

@@ -7,6 +7,13 @@ A consumer pays a CEP-18 token per request; a facilitator settles the payment on
 Built on the official **[make-software/casper-x402](https://github.com/make-software/casper-x402)**
 facilitator. This folder documents how we wire it to our oracle.
 
+> **Vouch pivot (M6):** the paid endpoint now sells the **trust-layer feed** (provider reputation
+> leaderboard + hire SLA verdicts + adversarial vote distributions + Treasury P&L) instead of raw
+> oracle prices — same facilitator / CEP-18 token / buyer account. Only the served file changes:
+> point `ORACLE_STATE_FILE` at `web/vouch_state.json` (regenerated from chain + local ledger by
+> `agent/vouch_state.py`). The RWA oracle stays the first onboarded Provider #0. See
+> [`server-oracle-handler.go.txt`](server-oracle-handler.go.txt).
+
 ## On-chain artifacts (Casper Testnet)
 
 | | |
@@ -86,3 +93,11 @@ pre-funded **application buyer account** via the backend instead of the visitor'
 
 This is intentional and arguably more on-narrative: in an agent economy, the **consuming application/agent
 pays automatically** — machine-to-machine — rather than prompting a human to sign every micropayment.
+
+## ⚠️ Security note (local demo)
+
+The dashboard's `/api/x402-buy` and `/api/refresh` endpoints are **unauthenticated** — `x402-buy` triggers a
+**real on-chain CEP-18 settlement** from the pre-funded buyer account on every call. Keep the dashboard bound
+to localhost; **do not expose port :4020 to the public internet** (no CORS is set, so cross-site calls are
+blocked by the browser, but a direct attacker could still drain the demo buyer balance). Add a shared-token /
+IP allowlist before any non-local deployment.

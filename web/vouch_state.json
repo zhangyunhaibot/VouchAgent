@@ -1,0 +1,137 @@
+{
+  "updated_at": "2026-06-17 18:08:19",
+  "registry_hash": "hash-1722de7aefcc523d5140b47b8ef89d7e4cb6ed5a112d3691f2e90eae262ab8ea",
+  "agents": [
+    {
+      "id": 0,
+      "reputation": 39,
+      "stake": 70000000000,
+      "price_per_day": 10000000000,
+      "status": 0,
+      "status_name": "active",
+      "lock_until": 1784269580608
+    }
+  ],
+  "hires": [
+    {
+      "id": 0,
+      "provider": 0,
+      "total": 30000000000,
+      "escrow": 0,
+      "settled": 30000000000,
+      "milestones_passed": 3,
+      "milestones_total": 3,
+      "status": 1,
+      "status_name": "settled"
+    },
+    {
+      "id": 1,
+      "provider": 0,
+      "total": 30000000000,
+      "escrow": 0,
+      "settled": 0,
+      "milestones_passed": 0,
+      "milestones_total": 3,
+      "status": 2,
+      "status_name": "refunded"
+    }
+  ],
+  "events": [
+    {
+      "kind": "verdict",
+      "at": "2026-06-17 18:04:32",
+      "claim_id": 3,
+      "topic": "XAU/USD",
+      "accurate": true,
+      "votes_for": 3,
+      "votes_against": 0,
+      "confidence": 93,
+      "tx": "https://testnet.cspr.live/transaction/c59c2dbc0a01568db031fc79d040285cf306f183240b8bacd2b5742d51e26b98"
+    },
+    {
+      "kind": "claim",
+      "at": "2026-06-17 18:03:17",
+      "claim_id": 3,
+      "agent": 0,
+      "topic": "XAU/USD",
+      "value": 4323375000,
+      "confidence": 95,
+      "tx": "https://testnet.cspr.live/transaction/7faa05491f97e18fd35746a3161c8b5f5ae639b457f5a63dd56467b63aca0f43"
+    },
+    {
+      "kind": "claim",
+      "at": "2026-06-17 16:17:42",
+      "claim_id": 2,
+      "agent": 0,
+      "topic": "XAU/USD",
+      "value": 4318480000,
+      "confidence": 95,
+      "tx": "https://testnet.cspr.live/transaction/78c46bc91bdc2e8656018fc720a4125bf098a84347a23c286db2ccb422ade6f9"
+    },
+    {
+      "kind": "refund",
+      "at": "2026-06-17 15:48:18",
+      "hire_id": 1,
+      "provider": 0,
+      "refunded": 30000000000,
+      "slashed": 30000000000,
+      "tx": "https://testnet.cspr.live/transaction/e8bda29f3504fc6e2fa88b53382511e9310c28bf4f7e0226d42bb21ef27c3647"
+    },
+    {
+      "kind": "hire_verdict",
+      "at": "2026-06-17 15:47:32",
+      "hire_id": 1,
+      "passed": 0,
+      "total": 3,
+      "accuracy": 0.0,
+      "passed_sla": false,
+      "tx": "https://testnet.cspr.live/transaction/3eacf51a30415a3f93aad9d30adae55f3a3aa7d85ca3394bc3be8066d94954fb"
+    },
+    {
+      "kind": "hire",
+      "at": "2026-06-17 15:46:28",
+      "hire_id": 1,
+      "provider": 0,
+      "topic": "XAU/USD",
+      "days": 3,
+      "total": 30000000000,
+      "tx": "https://testnet.cspr.live/transaction/e989a96d3927ebb8a439c571b19cc8d2e43fdf4a852eca9dca4eb49654ec36ed"
+    },
+    {
+      "kind": "settle",
+      "at": "2026-06-17 15:43:40",
+      "hire_id": 0,
+      "provider": 0,
+      "paid": 30000000000,
+      "commission": 3000000000,
+      "tx": "https://testnet.cspr.live/transaction/8062e3195b55bb651d9e324e7ea8d633a4cf07260e18b10dd2962b5ebfd393eb"
+    },
+    {
+      "kind": "hire_verdict",
+      "at": "2026-06-17 15:43:40",
+      "hire_id": 0,
+      "passed": 3,
+      "total": 3,
+      "accuracy": 1.0,
+      "passed_sla": true,
+      "tx": "https://testnet.cspr.live/transaction/a42d57b23e02a10fa6c894194e314de222a095f54ad6cda66b2886fc123c53d2"
+    },
+    {
+      "kind": "hire",
+      "at": "2026-06-17 15:43:40",
+      "hire_id": 0,
+      "provider": 0,
+      "topic": "XAU/USD",
+      "days": 3,
+      "total": 30000000000,
+      "tx": "https://testnet.cspr.live/transaction/db4f740cddd860772a2c28d6733d4b614ba39bab0a34aec1d39d8b7f06e2ddc3"
+    }
+  ],
+  "treasury": {
+    "commission": 3000000000,
+    "query_fees": 0,
+    "evidence_cost": 0,
+    "gas_cost_cspr": 22.0,
+    "net_profit": 3000000000
+  }
+}

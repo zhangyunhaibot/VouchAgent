@@ -35,3 +35,19 @@ r.GET("/oracle", func(c *ginfw.Context) {
 // examples/client/main.go — request the /oracle endpoint
 // ─────────────────────────────────────────────────────────────────────────────
 // resp, err := httpClient.Get(cfg.ServerURL + "/oracle")
+
+// ═════════════════════════════════════════════════════════════════════════════
+// M6 PIVOT (Vouch trust layer): the paid endpoint now sells the TRUST-LAYER FEED
+// instead of raw oracle prices — same facilitator / CEP-18 token / buyer account.
+//
+// Only the served data file changes: point ORACLE_STATE_FILE at web/vouch_state.json
+// (provider reputation leaderboard + hire escrows + adversarial verdict stream +
+//  Treasury P&L), which agent/vouch_state.py regenerates from chain + local ledger.
+// No Go code change needed for the single-feed endpoint; the route name (/oracle)
+// is an internal detail. Description should read e.g.:
+//   "Vouch trust-layer feed: AI-validated agent reputation, hire SLA verdicts,
+//    adversarial vote distributions — pay-per-call via x402 (CEP-18 settled)."
+//
+// The RWA oracle remains the FIRST onboarded Provider (#0); its price claims are
+// what the verification network adversarially scores into the reputation shown here.
+// ═════════════════════════════════════════════════════════════════════════════

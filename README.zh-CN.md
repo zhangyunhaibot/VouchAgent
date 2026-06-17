@@ -76,6 +76,8 @@ testnet 上两次真实运行，同一个 Provider，相反的结局：
 | Provider 注册 + 质押 100 X402 | [`0a06e7a1…`](https://testnet.cspr.live/transaction/0a06e7a1ff5ad3da48b6d81a685ac279b4875e9ab8310fb5a837da94158bd2a2) |
 | 诚实 claim → 裁决 **3:0 准确** | [`35d6bb4e…`](https://testnet.cspr.live/transaction/35d6bb4e2b2b5ed0675b95c766e0159b3d3b31bd2bb2818df2c0984c2b9cc1e3) |
 | 恶意 claim → 裁决 **0:3 不准确** | [`b27cb62a…`](https://testnet.cspr.live/transaction/b27cb62a3caf5f076406de6e516479d93bdfdd1e6f9c6b18f3c07ffb5e0fecdd) |
+| **雇佣** → SLA 达标 → settle 放款（扣 10% 佣金） | [`8062e319…`](https://testnet.cspr.live/transaction/8062e3195b55bb651d9e324e7ea8d633a4cf07260e18b10dd2962b5ebfd393eb) |
+| **雇佣** → SLA 不达标 → 退款 Consumer + **罚没押金** | [`e8bda29f…`](https://testnet.cspr.live/transaction/e8bda29f3504fc6e2fa88b53382511e9310c28bf4f7e0226d42bb21ef27c3647) |
 | 跨合约托管 PoC（CEP-18 托管） | [`99bd01c0…`](https://testnet.cspr.live/transaction/99bd01c0325ca25a7622cd821de4d2913cffef49e908d96fe535dd63f261f5e2) |
 
 ## 智能合约：`TrustRegistry`（Rust / Odra）
@@ -127,10 +129,15 @@ contract/   Rust / Odra
   bin/                    trust_deploy / trust_e2e / escrow_*（Odra livenet）
 agent/      Python
   verifier_network.py     对抗式验证者评审团
+  sla_evaluator.py        客观 SLA / 里程碑评估
   vouch_chain.py          TrustRegistry 桥接
   vouch_cycle.py          一轮自主闭环（claim → 验证 → 裁决 → 信誉）
+  hire_cycle.py           雇佣托管闭环（托管 → SLA 裁决 → settle/refund）
+  keeper.py               keeper：释放到期押金 / 扫描未结算雇佣单
+  x402_buyer.py           x402 买方（Judge 按次付费拉证据）
+  vouch_ledger.py · vouch_state.py   本地账本 + 链上快照（看板用）
   fetcher/judge/risk/coordinator.py   Provider 预言机 + 各 agent
-web/        FastAPI 看板 + x402 付费端点
+web/        FastAPI 看板（信誉榜 / 雇佣单 / 裁决 / Treasury）+ x402 付费端点
 x402/       x402 集成指南 + 配置
 ```
 

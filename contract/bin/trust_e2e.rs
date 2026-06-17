@@ -13,6 +13,11 @@
 //!   hire      consumer 雇佣（AGENT_ID/DAYS/MILESTONES）
 //!   hverdict  verifier 记录履约里程碑（HIRE_ID/PASSED）
 //!   settle    结算放款（HIRE_ID）
+//!   refund    不达标退款罚没（HIRE_ID）
+//!   release   到期返还押金（AGENT_ID）
+//!   hire_info 读取 hire 状态（HIRE_ID）—— keeper 扫描用
+//!   hire_count   读取雇佣单总数
+//!   agent_count  读取 agent 总数
 //!   agent     读取 agent 状态（AGENT_ID）
 
 use std::env;
@@ -122,16 +127,59 @@ fn main() {
             r.settle_hire(u64v("HIRE_ID", 0));
             println!("OK settle hire={} 已结算放款", u64v("HIRE_ID", 0));
         }
+        "refund" => {
+            let mut r = TrustRegistry::load(&lv, a("REGISTRY_HASH"));
+            lv.set_gas(15_000_000_000u64);
+            r.refund_hire(u64v("HIRE_ID", 0));
+            println!("OK refund hire={} 已退款罚没", u64v("HIRE_ID", 0));
+        }
+        "release" => {
+            let mut r = TrustRegistry::load(&lv, a("REGISTRY_HASH"));
+            lv.set_gas(15_000_000_000u64);
+            r.release_expired_stake(u64v("AGENT_ID", 0));
+            println!("OK release agent={} 押金已到期返还", u64v("AGENT_ID", 0));
+        }
+        "hire_info" => {
+            let r = TrustRegistry::load(&lv, a("REGISTRY_HASH"));
+            let h = r.get_hire(u64v("HIRE_ID", 0));
+            println!(
+                "hire {} provider={} total={} escrow={} settled={} milestones={}/{} status={} ends_at={}",
+                u64v("HIRE_ID", 0),
+                h.provider,
+                h.total,
+                h.escrow,
+                h.settled,
+                h.milestones_passed,
+                h.milestones_total,
+                h.status,
+                h.ends_at
+            );
+        }
+        "hire_count" => {
+            let r = TrustRegistry::load(&lv, a("REGISTRY_HASH"));
+            println!("hire_count={}", r.get_hire_count());
+        }
+        "agent_count" => {
+            let r = TrustRegistry::load(&lv, a("REGISTRY_HASH"));
+            println!("agent_count={}", r.get_agent_count());
+        }
+        "balance" => {
+            let who = a("TARGET");
+            let t = Erc20::load(&lv, token);
+            println!("balance {} = {}", who.to_string(), t.balance_of(&who));
+        }
         "agent" => {
             let r = TrustRegistry::load(&lv, a("REGISTRY_HASH"));
             let ag = r.get_agent(u64v("AGENT_ID", 0));
             println!(
-                "agent {} reputation={} stake={} hires={} status={}",
+                "agent {} reputation={} stake={} price={} hires={} status={} lock_until={}",
                 u64v("AGENT_ID", 0),
                 ag.reputation,
                 ag.stake,
+                ag.price_per_day,
                 ag.hires_count,
-                ag.status
+                ag.status,
+                ag.lock_until
             );
         }
         other => println!("未知 STEP: {other}"),

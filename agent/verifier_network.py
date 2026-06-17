@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from openai import OpenAI
 
 from fetcher import fetch_asset
+import x402_buyer
 
 
 @dataclass
@@ -35,6 +36,8 @@ class Verdict:
     evidence: str = ""
     votes: list = field(default_factory=list)
     reasoning: str = ""
+    paid_cost: int = 0  # 本轮为补证据通过 x402 付费的 X402 支出（成本侧）
+    paid_tx: str | None = None  # 付费证据的链上结算 tx
 
 
 # 三个角度互异的验证者人格 —— 故意制造独立视角，让分歧能浮现（name, persona, temperature）。
@@ -99,14 +102,51 @@ def _one_vote(client, model, name, persona, temperature, topic, claimed, evidenc
     )
 
 
+def _paid_evidence_enabled(allow_paid: bool | None) -> bool:
+    if allow_paid is not None:
+        return allow_paid
+    return os.environ.get("X402_PAID_EVIDENCE", "").strip() in ("1", "true", "yes")
+
+
+def gather_evidence(
+    topic: str,
+    min_sources: int = 2,
+    allow_paid: bool | None = None,
+    verbose: bool = True,
+) -> tuple[str, int, str | None]:
+    """独立取证：先免费多源抓取；来源不足且开启付费时，x402 付费补一份 premium 证据。
+
+    返回 (证据字符串, 付费成本, 付费结算tx)。验证网络【不信 Provider 自报值】。
+    """
+    readings = fetch_asset(topic)
+    parts = [f"{r.source}={r.price:.4f}" for r in readings]
+    cost, tx = 0, None
+
+    if len(readings) < min_sources and _paid_evidence_enabled(allow_paid):
+        if verbose:
+            print(f"  💸 免费来源仅 {len(readings)} 个（<{min_sources}），x402 付费补 premium 证据…")
+        buy = x402_buyer.buy_premium_evidence()
+        if buy.success:
+            cost, tx = buy.cost, buy.settlement_tx
+            parts.append(f"premium(付费)={json.dumps(buy.data, ensure_ascii=False)[:120]}")
+            if verbose:
+                print(f"  💸 已付费拉到 premium 证据（成本 {cost}, tx {buy.tx_url}）")
+        elif verbose:
+            print(f"  ⚠️  付费证据获取失败，回退到免费证据（{buy.raw[:80]}）")
+
+    evidence = ", ".join(parts) or "（无法取证）"
+    return evidence, cost, tx
+
+
 def verify_claim(topic: str, claimed_value: float, model: str | None = None,
-                 verbose: bool = True) -> Verdict:
+                 verbose: bool = True, allow_paid: bool | None = None) -> Verdict:
     """对一条 claim 做对抗式验证：独立取证 → N 个 verifier 独立投票 → 加权收敛。"""
     client, model = _client(model)
 
-    # 1. 独立取证：验证网络不信 Provider，自己重新抓多源价格
-    readings = fetch_asset(topic)
-    evidence = ", ".join(f"{r.source}={r.price:.4f}" for r in readings) or "（无法取证）"
+    # 1. 独立取证：验证网络不信 Provider，自己重新抓多源价格（必要时 x402 付费补证据）
+    evidence, paid_cost, paid_tx = gather_evidence(
+        topic, allow_paid=allow_paid, verbose=verbose
+    )
 
     # 2. N 个人格互异的 verifier 独立投票
     votes: list[VerifierVote] = []
@@ -142,4 +182,6 @@ def verify_claim(topic: str, claimed_value: float, model: str | None = None,
         evidence=evidence,
         votes=votes,
         reasoning=reasoning,
+        paid_cost=paid_cost,
+        paid_tx=paid_tx,
     )

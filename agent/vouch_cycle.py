@@ -23,6 +23,9 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 from judge import judge_asset  # noqa: E402
 from verifier_network import verify_claim  # noqa: E402
 import vouch_chain  # noqa: E402
+import vouch_ledger  # noqa: E402
+
+GAS_PER_TX_CSPR = 2.0  # 单笔链上交易 gas 粗估（CSPR）
 
 PROVIDER_KEY = os.environ["PROVIDER_KEY"]
 VERIFIER_KEY = os.environ["VERIFIER_KEY"]
@@ -59,6 +62,12 @@ def main() -> None:
     )
     claim_id = sub["claim_id"]
     print(f"   claim#{claim_id} 上链: {sub['tx']}\n")
+    vouch_ledger.record_event(
+        "claim", claim_id=claim_id, agent=AGENT_ID, topic=TOPIC,
+        value=int(round(claimed * vouch_chain.PRICE_SCALE)),
+        confidence=judgement.confidence, tx=sub["tx"],
+    )
+    vouch_ledger.add_treasury(gas_cspr=GAS_PER_TX_CSPR)
 
     # 2. 验证网络对抗式裁决（独立重新取证 + 3 个人格互异的 verifier 投票）
     print("② 验证网络对抗式裁决（独立取证 + 多 verifier 投票）:")
@@ -76,6 +85,14 @@ def main() -> None:
         verdict.votes_against,
     )
     print(f"   verdict 上链: {rec['tx']}\n")
+    vouch_ledger.record_event(
+        "verdict", claim_id=claim_id, topic=TOPIC, accurate=verdict.accurate,
+        votes_for=verdict.votes_for, votes_against=verdict.votes_against,
+        confidence=verdict.confidence, tx=rec["tx"],
+    )
+    vouch_ledger.add_treasury(
+        evidence_cost=verdict.paid_cost, gas_cspr=GAS_PER_TX_CSPR
+    )
 
     # 4. 读回 Provider 最新链上信誉
     ag = vouch_chain.get_agent(VERIFIER_KEY, AGENT_ID)

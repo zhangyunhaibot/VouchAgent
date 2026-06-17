@@ -76,6 +76,8 @@ Everything below is **deployed and producing real on-chain transactions**:
 | Provider register + stake 100 X402 | [`0a06e7a1…`](https://testnet.cspr.live/transaction/0a06e7a1ff5ad3da48b6d81a685ac279b4875e9ab8310fb5a837da94158bd2a2) |
 | Honest claim → verdict **3:0 accurate** | [`35d6bb4e…`](https://testnet.cspr.live/transaction/35d6bb4e2b2b5ed0675b95c766e0159b3d3b31bd2bb2818df2c0984c2b9cc1e3) |
 | Malicious claim → verdict **0:3 inaccurate** | [`b27cb62a…`](https://testnet.cspr.live/transaction/b27cb62a3caf5f076406de6e516479d93bdfdd1e6f9c6b18f3c07ffb5e0fecdd) |
+| **Hire** → SLA pass → settle (payout − 10% commission) | [`8062e319…`](https://testnet.cspr.live/transaction/8062e3195b55bb651d9e324e7ea8d633a4cf07260e18b10dd2962b5ebfd393eb) |
+| **Hire** → SLA fail → refund consumer + **slash stake** | [`e8bda29f…`](https://testnet.cspr.live/transaction/e8bda29f3504fc6e2fa88b53382511e9310c28bf4f7e0226d42bb21ef27c3647) |
 | Cross-contract escrow PoC (CEP-18 custody) | [`99bd01c0…`](https://testnet.cspr.live/transaction/99bd01c0325ca25a7622cd821de4d2913cffef49e908d96fe535dd63f261f5e2) |
 
 ## Smart Contract: `TrustRegistry` (Rust / Odra)
@@ -127,10 +129,15 @@ contract/   Rust / Odra
   bin/                    trust_deploy / trust_e2e / escrow_* (Odra livenet)
 agent/      Python
   verifier_network.py     adversarial verifier panel
+  sla_evaluator.py        objective SLA / milestone evaluation
   vouch_chain.py          TrustRegistry bridge
   vouch_cycle.py          one autonomous round (claim → verify → verdict → reputation)
+  hire_cycle.py           hire-escrow closed loop (escrow → SLA verdict → settle/refund)
+  keeper.py               keeper: release expired stake / scan unsettled hires
+  x402_buyer.py           x402 buyer (Judge pays per-call for evidence)
+  vouch_ledger.py · vouch_state.py   local ledger + on-chain snapshot for the dashboard
   fetcher/judge/risk/coordinator.py   provider oracle + agents
-web/        FastAPI dashboard + x402 paid endpoint
+web/        FastAPI dashboard (reputation board / hires / verdicts / Treasury) + x402 paid endpoint
 x402/       x402 integration guide + config
 ```
 
