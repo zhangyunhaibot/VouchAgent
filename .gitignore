@@ -25,6 +25,7 @@ web/oracle_state.json
 # === 系统 ===
 .DS_Store
 
-# === 内部开发文档（不进公开仓库）===
+# === 内部开发文档 / 工具（不进公开仓库）===
 docs/
 CLAUDE.md
+.claude/
