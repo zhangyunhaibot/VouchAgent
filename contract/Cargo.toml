@@ -36,6 +36,11 @@ name = "submit"
 path = "bin/submit.rs"
 required-features = ["livenet"]
 
+[[bin]]
+name = "score"
+path = "bin/score.rs"
+required-features = ["livenet"]
+
 [features]
 default = []
 livenet = ["odra-casper-livenet-env"]

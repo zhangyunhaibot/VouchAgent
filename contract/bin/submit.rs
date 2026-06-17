@@ -30,12 +30,19 @@ fn main() {
         .expect("缺少 SUBMIT_CONFIDENCE")
         .parse()
         .expect("SUBMIT_CONFIDENCE 必须是 0-100 的整数");
+    let source_count: u8 = env::var("SUBMIT_SOURCE_COUNT")
+        .unwrap_or_else(|_| "2".to_string())
+        .parse()
+        .unwrap_or(2);
 
     let mut oracle = RwaOracle::load(&livenet, address);
     livenet.set_gas(10_000_000_000u64);
-    oracle.submit_data(asset.clone(), U256::from(value), confidence);
+    oracle.submit_data(asset.clone(), U256::from(value), confidence, source_count);
 
-    println!("OK asset={} value={} confidence={}", asset, value, confidence);
-    println!("submission_count={}", oracle.get_submission_count());
-    println!("reputation={}", oracle.get_reputation());
+    println!(
+        "OK asset={} value={} confidence={} sources={}",
+        asset, value, confidence, source_count
+    );
+    println!("total_submissions={}", oracle.get_total_submissions());
+    println!("reputation={}", oracle.get_reputation(asset));
 }

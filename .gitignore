@@ -1,5 +1,7 @@
 # === 私钥 / 密钥（绝对不能提交！）===
 contract/keys/
+x402/keys/
+x402/keys-buyer/
 *.pem
 *_secret_key*
 
@@ -17,10 +19,12 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
+# === 运行时产物 ===
+web/oracle_state.json
+
 # === 系统 ===
 .DS_Store
 
-# === 内部开发文档（不进公开仓库；如想公开可删掉对应行）===
-docs/development-log.md
-docs/project-context.md
+# === 内部开发文档（不进公开仓库）===
+docs/
 CLAUDE.md

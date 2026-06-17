@@ -21,14 +21,18 @@ fn main() {
     println!("✅ RwaOracle 已部署");
     println!("   合约地址: {}", oracle.address().to_string());
 
-    // 提交一条黄金价格数据，产生一笔链上交易。
+    // 提交一条黄金价格数据（2 个数据源交叉验证），产生一笔链上交易。
     env.set_gas(10_000_000_000u64);
-    oracle.submit_data(String::from("XAU/USD"), U256::from(4_330_000_000u64), 95);
+    oracle.submit_data(String::from("XAU/USD"), U256::from(4_330_000_000u64), 95, 2);
     println!("✅ 已提交一条数据，链上交易完成");
 
     // 读回链上数据验证。
     let dp = oracle.get_data(String::from("XAU/USD"));
-    println!("   链上读回: value={} confidence={}", dp.value, dp.confidence);
-    println!("   信誉分: {}", oracle.get_reputation());
-    println!("   提交次数: {}", oracle.get_submission_count());
+    println!(
+        "   链上读回: value={} confidence={} sources={}",
+        dp.value, dp.confidence, dp.source_count
+    );
+    println!("   信誉分: {}", oracle.get_reputation(String::from("XAU/USD")));
+    println!("   已注册资产数: {}", oracle.get_asset_count());
+    println!("   总提交次数: {}", oracle.get_total_submissions());
 }

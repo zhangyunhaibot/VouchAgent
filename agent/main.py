@@ -1,46 +1,79 @@
-"""RWA 预言机 Agent 主流程。
+"""RWA 多智能体预言机 —— 入口。
 
-一轮工作：抓多源数据 → LLM 判断可信度 →（可信则）上链提交。
-当前阶段：链上提交待合约部署后接入，先打通「抓取 + 判断」两步，
-光配置 ANTHROPIC_API_KEY 即可跑起来看 AI 大脑工作。
+运行协调器一轮：DeepSeek 协调器用工具调用【自主编排】
+抓取 → Judge 交叉验证 → 上链 → Risk 评估 → 更新链上信誉分。
+
+用法：
+  python main.py            处理全部资产（黄金/BTC/欧元，含多笔链上交易，较慢）
+  python main.py --quick    仅处理 1 个资产（快速演示）
+  python main.py --loop     自主循环：每隔一段时间自动跑一轮（按 Ctrl+C 停止）
 """
 from __future__ import annotations
 
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-from chain import submit_on_chain
-from fetcher import fetch_all
-from judge import judge_readings
+from coordinator import run_cycle
+
+# 自主循环模式下，每轮之间的间隔（秒）。
+LOOP_INTERVAL = 300
+
+# 状态快照写到 web/ 供 Dashboard 读取。
+STATE_PATH = Path(__file__).resolve().parent.parent / "web" / "oracle_state.json"
 
 
-def run_once() -> None:
-    """执行一轮预言机工作。"""
+def _write_state(tools) -> None:
+    snapshot = tools.snapshot()
+    snapshot["updated_at"] = int(time.time())
+    snapshot["contract_hash"] = os.environ.get("CONTRACT_HASH", "")
+    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    STATE_PATH.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2))
+    print(f"\n💾 状态快照已写入 {STATE_PATH.relative_to(STATE_PATH.parent.parent)}")
+
+
+def run_one(max_assets: int | None) -> None:
+    tools = run_cycle(max_assets=max_assets)
+    _write_state(tools)
+    print("\n=== 本轮链上动作汇总 ===")
+    if not tools.actions:
+        print("  （本轮无链上动作）")
+    for a in tools.actions:
+        action_cn = {"submit": "提交数据", "score": "更新信誉分"}.get(a["action"], a["action"])
+        print(f"  · {action_cn:8} {a['asset']}")
+
+
+def main() -> None:
     load_dotenv()
+    quick = "--quick" in sys.argv
+    loop = "--loop" in sys.argv
+    max_assets = 1 if quick else None
 
-    print("① 抓取多源资产数据 ...")
-    readings = fetch_all()
-    if not readings:
-        print("   没有抓到任何数据，跳过本轮。")
+    print("=== RWA 多智能体预言机 · 协调器启动 ===")
+    if quick:
+        print("（快速演示模式：仅处理 1 个资产）")
+    print()
+
+    if not loop:
+        run_one(max_assets)
         return
-    for r in readings:
-        print(f"   {r.source:18} {r.asset}  ${r.price:,.2f}")
 
-    print("\n② LLM 交叉核对、判断可信度 ...")
-    result = judge_readings(readings)
-    print(f"   共识价格：${result.consensus_value:,.2f}")
-    print(f"   置信度：  {result.confidence}/100")
-    print(f"   可上链：  {'是' if result.is_reliable else '否'}")
-    print(f"   理由：    {result.reasoning}")
-
-    print("\n③ 上链提交 ...")
-    if not result.is_reliable:
-        print("   置信度不足，本轮不提交。")
-        return
-    asset = readings[0].asset
-    print(f"   提交 {asset} = ${result.consensus_value:,.2f}（置信度 {result.confidence}）到 Casper 测试网 ...")
-    output = submit_on_chain(asset, result.consensus_value, result.confidence)
-    print(f"   ✅ 上链成功：\n   {output.replace(chr(10), chr(10) + '   ')}")
+    # 自主循环：持续监控。
+    print(f"（自主循环模式：每 {LOOP_INTERVAL // 60} 分钟一轮，Ctrl+C 停止）\n")
+    cycle = 1
+    while True:
+        print(f"\n──────── 第 {cycle} 轮 ────────")
+        try:
+            run_one(max_assets)
+        except Exception as exc:  # noqa: BLE001 — 单轮失败不应中断整个守护循环
+            print(f"  ⚠️  本轮出错（已跳过）：{exc}")
+        cycle += 1
+        time.sleep(LOOP_INTERVAL)
 
 
 if __name__ == "__main__":
-    run_once()
+    main()

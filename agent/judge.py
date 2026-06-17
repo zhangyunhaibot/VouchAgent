@@ -1,11 +1,11 @@
-"""LLM 数据可信度判断（Agent 的「大脑」，使用 DeepSeek）。
+"""Judge Agent —— LLM 数据可信度判断（使用 DeepSeek）。
 
-接收多个【相互独立】数据源对同一资产的报价，用 DeepSeek 交叉核对：
+接收某资产来自多个【相互独立】数据源的报价，用 DeepSeek 交叉核对：
 - 各源是否相互吻合？偏差多大？
 - 是否存在明显异常值（某个源被污染 / 延迟）？
 据此给出共识价格、0-100 的置信度，以及判断理由。
 
-这是整个预言机「可信」的核心——单一来源无法判断数据真假，
+这是整个预言机"可信"的核心——单一来源无法判断数据真假，
 多来源交叉验证 + LLM 推理，才能给出有依据的置信度。
 
 DeepSeek 提供 OpenAI 兼容接口，故用 openai SDK，指向 https://api.deepseek.com。
@@ -18,11 +18,11 @@ import os
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from fetcher import PriceReading
+from fetcher import PriceReading, fetch_asset
 
 
 class Judgement(BaseModel):
-    """LLM 对一组报价的可信度判断结果。"""
+    """Judge Agent 对一组报价的可信度判断结果。"""
 
     consensus_value: float = Field(description="综合多个数据源后认定的共识价格（美元）")
     confidence: int = Field(description="数据可信度，0-100 的整数", ge=0, le=100)
@@ -31,7 +31,7 @@ class Judgement(BaseModel):
 
 
 # 注意：DeepSeek 的 JSON 模式要求 prompt 中出现 "json" 字样并给出输出示例。
-SYSTEM_PROMPT = """你是一个 RWA（真实世界资产）链上预言机的数据质检员。
+SYSTEM_PROMPT = """你是一个 RWA（真实世界资产）链上预言机的数据质检员（Judge Agent）。
 你会收到同一资产来自多个【相互独立】数据源的报价，你的职责是交叉核对，判断数据是否可信。
 
 判断原则：
@@ -54,20 +54,19 @@ JSON 输出示例：
 {"consensus_value": 4330.5, "confidence": 95, "is_reliable": true, "reasoning": "两个独立来源偏差仅0.3%，高度吻合"}"""
 
 
-def judge_readings(readings: list[PriceReading], model: str | None = None) -> Judgement:
-    """对一组报价做可信度判断，返回结构化结果。
-
-    需要环境变量 DEEPSEEK_API_KEY（用户自备）。
-    """
-    if not readings:
-        raise ValueError("没有任何数据源报价，无法判断")
-
-    model = model or os.environ.get("LLM_MODEL", "deepseek-v4-flash")
-    client = OpenAI(
+def _client() -> OpenAI:
+    return OpenAI(
         api_key=os.environ["DEEPSEEK_API_KEY"],
         base_url=os.environ.get("LLM_BASE_URL", "https://api.deepseek.com"),
     )
 
+
+def judge_readings(readings: list[PriceReading], model: str | None = None) -> Judgement:
+    """对一组报价做可信度判断，返回结构化结果。需要 DEEPSEEK_API_KEY。"""
+    if not readings:
+        raise ValueError("没有任何数据源报价，无法判断")
+
+    model = model or os.environ.get("LLM_MODEL", "deepseek-v4-flash")
     quote_lines = "\n".join(
         f"- 来源 {r.source}：{r.asset} = ${r.price:,.4f}" for r in readings
     )
@@ -77,7 +76,7 @@ def judge_readings(readings: list[PriceReading], model: str | None = None) -> Ju
         f"请交叉核对这些报价并按要求输出 JSON 判断。"
     )
 
-    response = client.chat.completions.create(
+    response = _client().chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -90,20 +89,23 @@ def judge_readings(readings: list[PriceReading], model: str | None = None) -> Ju
     return Judgement(**data)
 
 
+def judge_asset(asset: str, model: str | None = None) -> tuple[list[PriceReading], Judgement]:
+    """抓取某资产的多源报价并做判断，返回 (报价列表, 判断结果)。"""
+    readings = fetch_asset(asset)
+    return readings, judge_readings(readings, model)
+
+
 if __name__ == "__main__":
-    # 本地手测：需先在 .env 配好 DEEPSEEK_API_KEY，再 `python judge.py`
     from dotenv import load_dotenv
 
-    from fetcher import fetch_all
+    from fetcher import list_assets
 
     load_dotenv()
-    readings = fetch_all()
-    print("抓到的报价：")
-    for r in readings:
-        print(f"  {r.source:18} ${r.price:,.2f}")
-    result = judge_readings(readings)
-    print("\nLLM 判断结果：")
-    print(f"  共识价格：${result.consensus_value:,.2f}")
-    print(f"  置信度：{result.confidence}")
-    print(f"  可上链：{result.is_reliable}")
-    print(f"  理由：{result.reasoning}")
+    for a in list_assets():
+        readings, result = judge_asset(a)
+        srcs = ", ".join(f"{r.source}=${r.price:,.2f}" for r in readings)
+        print(f"\n{a}: {srcs}")
+        print(
+            f"  → 共识 ${result.consensus_value:,.2f} | 置信度 {result.confidence} "
+            f"| {'可上链' if result.is_reliable else '不可上链'} | {result.reasoning}"
+        )

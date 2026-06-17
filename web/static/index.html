@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Casper RWA Oracle · Multi-Agent Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .live-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+    body { background: radial-gradient(1200px 600px at 50% -10%, #2a0a0a 0%, #0b0b0f 55%); }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen font-sans">
+  <div class="max-w-6xl mx-auto px-5 py-8">
+
+    <!-- Header -->
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">
+          <span class="text-red-500">Casper</span> RWA Oracle
+        </h1>
+        <p class="text-slate-400 text-sm mt-1">Autonomous Multi-Agent Oracle Network · 自主多智能体预言机</p>
+      </div>
+      <div class="text-right text-sm">
+        <div class="flex items-center justify-end gap-2 text-emerald-400">
+          <span class="live-dot w-2 h-2 rounded-full bg-emerald-400"></span> LIVE · Casper Testnet
+        </div>
+        <div id="updated" class="text-slate-500 mt-1">加载中…</div>
+        <a id="contractLink" href="#" target="_blank" class="text-slate-500 hover:text-red-400 underline break-all"></a>
+      </div>
+    </header>
+
+    <!-- Stats -->
+    <section class="grid grid-cols-3 gap-4 mb-8">
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+        <div class="text-slate-400 text-xs">监控资产</div>
+        <div id="statAssets" class="text-2xl font-bold mt-1">–</div>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+        <div class="text-slate-400 text-xs">平均置信度</div>
+        <div id="statConf" class="text-2xl font-bold mt-1">–</div>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+        <div class="text-slate-400 text-xs">本轮链上动作</div>
+        <div id="statTx" class="text-2xl font-bold mt-1">–</div>
+      </div>
+    </section>
+
+    <!-- Asset cards -->
+    <section id="cards" class="grid md:grid-cols-2 gap-5"></section>
+
+    <p id="empty" class="hidden text-center text-slate-500 py-16">
+      暂无数据。请运行 <code class="text-red-400">python agent/main.py</code> 让协调器跑一轮。
+    </p>
+
+    <!-- x402 付费购买 -->
+    <section class="mt-8 bg-gradient-to-br from-red-950/40 to-slate-900/60 border border-red-900/40 rounded-xl p-6">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 class="text-lg font-semibold">💎 Premium Data · x402 微支付</h2>
+          <p class="text-slate-400 text-sm mt-1">
+            数据消费方通过 x402 按次付费（CEP-18 代币，链上结算）获取完整预言机数据 —— agent 经济闭环。
+          </p>
+        </div>
+        <button id="buyBtn"
+          class="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 font-medium disabled:opacity-40 disabled:cursor-not-allowed">
+          购买 Premium 数据（x402 链上付费）
+        </button>
+      </div>
+      <div id="buyResult" class="hidden mt-4 text-sm bg-black/40 border border-slate-800 rounded-lg p-4 text-slate-300"></div>
+      <div id="settleTx" class="hidden mt-2 text-sm"></div>
+    </section>
+
+    <footer class="text-center text-slate-600 text-xs mt-12">
+      三个独立 LLM 智能体协作：Coordinator 编排 · Judge 交叉验证 · Risk 信誉管理 ·
+      数据上链 Casper · 数据经 x402 付费售卖 · LLM 由 DeepSeek 驱动
+    </footer>
+  </div>
+
+  <script>
+    const ICONS = { "XAU/USD": "🥇", "XAG/USD": "🥈", "BTC/USD": "₿", "EUR/USD": "💱" };
+
+    function confColor(c) {
+      if (c == null) return "bg-slate-700 text-slate-300";
+      if (c >= 90) return "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+      if (c >= 70) return "bg-amber-500/20 text-amber-300 border border-amber-500/40";
+      return "bg-red-500/20 text-red-300 border border-red-500/40";
+    }
+    function riskColor(r) {
+      return { low: "text-emerald-400", medium: "text-amber-400", high: "text-red-400" }[r] || "text-slate-400";
+    }
+    function fmt(v) {
+      if (v == null) return "–";
+      return v >= 100 ? v.toLocaleString(undefined, {maximumFractionDigits: 2})
+                      : v.toLocaleString(undefined, {maximumFractionDigits: 4});
+    }
+
+    function card(a) {
+      const icon = ICONS[a.asset] || "📈";
+      const sources = (a.prices || []).map(p =>
+        `<div class="flex justify-between text-xs text-slate-400">
+           <span>${p.source}</span><span class="text-slate-300">$${fmt(p.price)}</span>
+         </div>`).join("");
+      const txs = [];
+      if (a.submit_tx) txs.push(`<a href="${a.submit_tx}" target="_blank" class="text-red-400 hover:underline">提交数据 ↗</a>`);
+      if (a.score_tx) txs.push(`<a href="${a.score_tx}" target="_blank" class="text-red-400 hover:underline">信誉分 ↗</a>`);
+      return `
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-lg font-semibold">${icon} ${a.asset}</div>
+            <div class="text-3xl font-bold mt-1">$${fmt(a.consensus_value)}</div>
+          </div>
+          <div class="text-right">
+            <span class="px-2 py-1 rounded-md text-xs font-medium ${confColor(a.confidence)}">置信度 ${a.confidence ?? "–"}</span>
+            <div class="mt-2 text-xs">信誉分 <span class="font-bold text-slate-100">${a.reputation ?? "–"}</span></div>
+            <div class="text-xs mt-1">风险 <span class="font-medium ${riskColor(a.risk_level)}">${a.risk_level ?? "–"}</span></div>
+          </div>
+        </div>
+        <div class="mt-4 space-y-1 border-t border-slate-800 pt-3">${sources}</div>
+        ${a.reasoning ? `<p class="text-xs text-slate-500 mt-3 italic">🧠 Judge：${a.reasoning}</p>` : ""}
+        ${a.risk_reasoning ? `<p class="text-xs text-slate-500 mt-1 italic">🛡️ Risk：${a.risk_reasoning}</p>` : ""}
+        <div class="flex gap-4 mt-3 text-xs">${txs.join("") || '<span class="text-slate-600">未上链</span>'}</div>
+      </div>`;
+    }
+
+    async function refresh() {
+      try {
+        const s = await (await fetch("/api/state")).json();
+        const assets = s.assets || [];
+        document.getElementById("empty").classList.toggle("hidden", assets.length > 0);
+        document.getElementById("cards").innerHTML = assets.map(card).join("");
+        document.getElementById("statAssets").textContent = assets.length || "–";
+        const confs = assets.map(a => a.confidence).filter(c => c != null);
+        document.getElementById("statConf").textContent = confs.length
+          ? Math.round(confs.reduce((x, y) => x + y, 0) / confs.length) : "–";
+        document.getElementById("statTx").textContent = (s.actions || []).length || "0";
+        if (s.updated_at) {
+          const d = new Date(s.updated_at * 1000);
+          document.getElementById("updated").textContent = "更新于 " + d.toLocaleString();
+        }
+        if (s.contract_hash) {
+          const pkg = s.contract_hash.replace(/^hash-/, "");
+          const link = document.getElementById("contractLink");
+          link.href = "https://testnet.cspr.live/contract-package/" + pkg;
+          link.textContent = "合约 " + pkg.slice(0, 10) + "…";
+        }
+      } catch (e) { console.error(e); }
+    }
+    refresh();
+    setInterval(refresh, 10000);
+
+    // ---- x402 付费购买（应用代付，链上结算）----
+    const buyBtn = document.getElementById("buyBtn");
+    const buyResult = document.getElementById("buyResult");
+    const settleTx = document.getElementById("settleTx");
+
+    buyBtn.addEventListener("click", async () => {
+      buyResult.classList.remove("hidden");
+      settleTx.classList.add("hidden");
+      buyBtn.disabled = true;
+      buyBtn.textContent = "结算中…";
+      buyResult.innerHTML = '<div class="text-slate-400">① 请求付费端点 → 收到 402 付款要求</div>'
+        + '<div class="text-slate-400">② 用 X402 代币签名授权，提交 facilitator</div>'
+        + '<div class="text-amber-400 animate-pulse">③ 链上 CEP-18 结算中（约 1-2 分钟，请稍候）…</div>';
+      try {
+        const r = await (await fetch("/api/x402-buy", { method: "POST" })).json();
+        if (r.success) {
+          const assets = (r.data && r.data.assets) || [];
+          buyResult.innerHTML =
+            '<div class="text-emerald-400 font-medium mb-3">✅ 付费成功，已解锁 ' + assets.length + ' 个资产的完整预言机数据：</div>'
+            + assets.map(a => {
+                const icon = ICONS[a.asset] || "📈";
+                return `<div class="flex items-center justify-between border-b border-slate-800/70 py-2">
+                  <span class="font-medium">${icon} ${a.asset}</span>
+                  <span class="text-slate-400 text-xs">
+                    共识价 <span class="text-slate-100">$${fmt(a.consensus_value)}</span>
+                    · 置信度 <span class="text-emerald-400">${a.confidence ?? "–"}</span>
+                    · 信誉分 <span class="text-slate-100">${a.reputation ?? "–"}</span>
+                    · 源 ${(a.prices || []).length}
+                  </span>
+                </div>`;
+              }).join("");
+          if (r.settlement_tx) {
+            settleTx.classList.remove("hidden");
+            settleTx.innerHTML = '✅ 链上结算交易（CEP-18 转账）：<a class="text-red-400 underline" target="_blank" href="https://testnet.cspr.live/transaction/' + r.settlement_tx + '">' + r.settlement_tx.slice(0, 16) + '… ↗</a>';
+          }
+        } else {
+          buyResult.innerHTML = '<span class="text-red-400">付费失败：' + (r.error || "未知") + '</span>';
+        }
+      } catch (e) {
+        buyResult.innerHTML = '<span class="text-red-400">出错：' + (e?.message || e) + '</span>';
+      }
+      buyBtn.disabled = false;
+      buyBtn.textContent = "再买一次（x402 链上付费）";
+    });
+  </script>
+</body>
+</html>

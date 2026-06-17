@@ -1,0 +1,32 @@
+// Modifications applied to the upstream make-software/casper-x402 example apps
+// so the x402-gated endpoint serves OUR oracle data.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// examples/server/main.go — route config: "GET /weather" → "GET /oracle"
+// ─────────────────────────────────────────────────────────────────────────────
+routes := x402http.RoutesConfig{
+    "GET /oracle": {
+        Accepts: x402http.PaymentOptions{
+            {Scheme: "exact", Price: "$0.001", Network: x402Network, PayTo: cfg.PayeeAddress},
+        },
+        Description: "Premium RWA oracle data feed (AI-validated gold/BTC/FX with confidence scores)",
+        MimeType:    "application/json",
+    },
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// examples/server/main.go — handler: return our agent-written oracle snapshot
+// ─────────────────────────────────────────────────────────────────────────────
+r.GET("/oracle", func(c *ginfw.Context) {
+    data, err := os.ReadFile("/path/to/casper-rwa-oracle-agent/web/oracle_state.json")
+    if err != nil {
+        c.JSON(http.StatusOK, ginfw.H{"error": "no oracle data yet — run the agent first"})
+        return
+    }
+    c.Data(http.StatusOK, "application/json", data)
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// examples/client/main.go — request the /oracle endpoint
+// ─────────────────────────────────────────────────────────────────────────────
+// resp, err := httpClient.Get(cfg.ServerURL + "/oracle")
