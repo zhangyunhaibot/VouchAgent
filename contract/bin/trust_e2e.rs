@@ -79,8 +79,8 @@ fn main() {
                 u64v("AGENT_ID", 0),
                 s("TOPIC", "XAU/USD"),
                 u256("VALUE", 4_330_000_000),
-                95,
-                2,
+                u64v("CONFIDENCE", 95) as u8,
+                u64v("SOURCES", 2) as u8,
                 s("PAYLOAD", "payload-hash"),
             );
             println!("OK claim_id={}", cid);
@@ -88,8 +88,16 @@ fn main() {
         "verdict" => {
             let mut r = TrustRegistry::load(&lv, a("REGISTRY_HASH"));
             lv.set_gas(15_000_000_000u64);
-            r.record_verdict(u64v("CLAIM_ID", 0), true, 95, 3, 0, s("REASON", "reason-hash"));
-            println!("OK verdict claim={} -> accurate", u64v("CLAIM_ID", 0));
+            let accurate = s("ACCURATE", "true") == "true";
+            r.record_verdict(
+                u64v("CLAIM_ID", 0),
+                accurate,
+                u64v("CONFIDENCE", 95) as u8,
+                u64v("VOTES_FOR", 3) as u8,
+                u64v("VOTES_AGAINST", 0) as u8,
+                s("REASON", "reason-hash"),
+            );
+            println!("OK verdict claim={} accurate={}", u64v("CLAIM_ID", 0), accurate);
         }
         "hire" => {
             let mut r = TrustRegistry::load(&lv, a("REGISTRY_HASH"));
