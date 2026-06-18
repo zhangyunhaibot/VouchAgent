@@ -1,246 +1,1806 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vouch · Decentralized Trust Layer for the Agent Economy</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Vouch - Trust Layer for the Casper Agent Economy</title>
   <style>
-    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .live-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
-    body { background: radial-gradient(1200px 600px at 50% -10%, #052e2b 0%, #0b0b0f 55%); }
+    :root {
+      --bg: #06080d;
+      --bg-soft: #0b0f18;
+      --panel: rgba(16, 22, 34, 0.82);
+      --panel-strong: rgba(20, 28, 44, 0.94);
+      --line: rgba(161, 174, 201, 0.16);
+      --line-strong: rgba(121, 137, 169, 0.34);
+      --text: #f4f7fb;
+      --muted: #9aa8bd;
+      --soft: #c9d2e3;
+      --violet: #8b6dff;
+      --cyan: #42d6ff;
+      --mint: #43e88b;
+      --amber: #f6b84b;
+      --red: #ff647c;
+      --shadow: 0 28px 70px rgba(0, 0, 0, 0.36);
+      --radius: 8px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      max-width: 100%;
+      overflow-x: clip;
+      background-color: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background-color: var(--bg);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(67, 232, 139, 0.18), transparent 26rem),
+        radial-gradient(circle at 86% 8%, rgba(139, 109, 255, 0.18), transparent 28rem),
+        linear-gradient(180deg, #05060a 0%, #08101a 46%, #05070b 100%);
+      background-color: var(--bg);
+      font-family: "SF Pro Display", "Aptos Display", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      max-width: 100%;
+      overflow-x: clip;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.82), transparent 72%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(255, 255, 255, 0.13) 0 1px, transparent 1.3px);
+      background-size: 28px 28px;
+      opacity: 0.08;
+      mix-blend-mode: screen;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(var(--max), calc(100% - 48px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(5, 7, 11, 0.78);
+      backdrop-filter: blur(20px);
+    }
+
+    .nav {
+      position: relative;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 166px;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      background: linear-gradient(145deg, rgba(67, 232, 139, 0.2), rgba(139, 109, 255, 0.22));
+      box-shadow: 0 0 34px rgba(67, 232, 139, 0.16);
+    }
+
+    .mark svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .brand strong {
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .links a {
+      padding: 26px 0;
+      border-bottom: 2px solid transparent;
+      transition: color 160ms ease, border-color 160ms ease;
+    }
+
+    .links a:hover,
+    .links a.active {
+      color: var(--text);
+      border-color: var(--mint);
+    }
+
+    .nav-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 16px;
+      border: 1px solid rgba(67, 232, 139, 0.42);
+      border-radius: 8px;
+      background: rgba(67, 232, 139, 0.08);
+      color: #ddffe9;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .nav-tools {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .lang-btn {
+      min-width: 34px;
+      height: 32px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.04em;
+      transition: background 160ms ease, color 160ms ease;
+    }
+
+    .lang-btn.active {
+      background: rgba(67, 232, 139, 0.16);
+      color: #dfffe9;
+    }
+
+    .mobile-toggle {
+      display: none;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      cursor: pointer;
+      flex: 0 0 40px;
+    }
+
+    .hero {
+      position: relative;
+      min-height: calc(100svh - 118px);
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(420px, 0.98fr);
+      align-items: center;
+      gap: 50px;
+      padding: 74px 0 48px;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+    }
+
+    .submission {
+      color: var(--mint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 14px;
+      font-size: clamp(72px, 12vw, 152px);
+      line-height: 0.84;
+      letter-spacing: -0.085em;
+    }
+
+    .hero h2 {
+      max-width: 720px;
+      margin-bottom: 22px;
+      color: var(--soft);
+      font-size: clamp(28px, 4.6vw, 58px);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    html[lang="zh-CN"] .hero h2 {
+      font-size: clamp(34px, 4vw, 52px);
+      line-height: 1.04;
+      letter-spacing: -0.045em;
+    }
+
+    .hero p {
+      max-width: 640px;
+      margin-bottom: 32px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.7;
+    }
+
+    .hero-actions,
+    .section-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 20px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.055);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      border-color: rgba(67, 232, 139, 0.72);
+      background: rgba(67, 232, 139, 0.09);
+    }
+
+    .btn.primary {
+      border-color: rgba(67, 232, 139, 0.74);
+      background: linear-gradient(135deg, #3bea8b, #27a9ff);
+      color: #02100a;
+      box-shadow: 0 20px 52px rgba(67, 232, 139, 0.18);
+    }
+
+    .btn.small {
+      min-height: 38px;
+      padding: 0 13px;
+      font-size: 12px;
+    }
+
+    .hero-visual {
+      position: relative;
+      isolation: isolate;
+      min-width: 0;
+    }
+
+    .hero-visual::before {
+      content: "";
+      position: absolute;
+      inset: -54px -30px -42px;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 48% 36%, rgba(67, 232, 139, 0.16), transparent 20rem),
+        radial-gradient(circle at 72% 20%, rgba(66, 214, 255, 0.14), transparent 18rem);
+      filter: blur(4px);
+    }
+
+    .verdict-panel {
+      max-width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(24, 31, 48, 0.96), rgba(9, 13, 21, 0.96)),
+        radial-gradient(circle at 10% 0, rgba(139, 109, 255, 0.18), transparent 22rem);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-top {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .panel-top span:last-child {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      text-align: right;
+    }
+
+    .lights {
+      display: flex;
+      gap: 7px;
+    }
+
+    .lights span {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--line-strong);
+    }
+
+    .lights span:nth-child(1) {
+      background: var(--red);
+    }
+
+    .lights span:nth-child(2) {
+      background: var(--amber);
+    }
+
+    .lights span:nth-child(3) {
+      background: var(--mint);
+    }
+
+    .panel-body {
+      padding: 22px;
+    }
+
+    .verdict-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .verdict-head h3 {
+      margin-bottom: 8px;
+      font-size: 24px;
+      letter-spacing: -0.04em;
+    }
+
+    .verdict-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .score-ring {
+      width: 106px;
+      height: 106px;
+      flex: 0 0 106px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center, #101723 0 55%, transparent 56%),
+        conic-gradient(var(--mint) 0 78%, rgba(255, 255, 255, 0.08) 78% 100%);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 38px rgba(67, 232, 139, 0.13);
+    }
+
+    .score-ring strong {
+      display: block;
+      font-size: 26px;
+      letter-spacing: -0.04em;
+    }
+
+    .score-ring small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .verifier-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .verifier {
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.045);
+      padding: 12px;
+      min-height: 112px;
+    }
+
+    .verifier span {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      background: rgba(67, 232, 139, 0.11);
+      color: var(--mint);
+      font-weight: 900;
+    }
+
+    .verifier b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .verifier small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .split-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .meter {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .meter i {
+      display: block;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, var(--mint), var(--cyan));
+      border-radius: inherit;
+    }
+
+    .proof-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      margin-bottom: 68px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.09);
+      overflow: hidden;
+    }
+
+    .proof-item {
+      min-height: 110px;
+      padding: 20px;
+      background: rgba(8, 12, 19, 0.86);
+    }
+
+    .proof-item strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 27px;
+      letter-spacing: -0.045em;
+    }
+
+    .proof-item span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .section {
+      padding: 86px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .section.compact {
+      padding: 64px 0;
+    }
+
+    .section-kicker {
+      margin-bottom: 16px;
+      color: var(--mint);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(280px, 0.55fr);
+      gap: 44px;
+      align-items: end;
+      margin-bottom: 40px;
+    }
+
+    .section-head h2 {
+      margin-bottom: 0;
+      font-size: clamp(36px, 5.7vw, 76px);
+      line-height: 0.95;
+      letter-spacing: -0.065em;
+    }
+
+    .section-head p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.72;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 0.86fr 1.14fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .problem-card,
+    .system-card,
+    .flow-step,
+    .proof-row,
+    .stack-item {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .problem-card {
+      padding: 28px;
+      background: linear-gradient(180deg, rgba(24, 31, 48, 0.84), rgba(10, 14, 22, 0.82));
+    }
+
+    .problem-card h3 {
+      margin-bottom: 18px;
+      font-size: 28px;
+      letter-spacing: -0.04em;
+    }
+
+    .problem-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.75;
+    }
+
+    .failure-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .failure-list article {
+      padding: 24px;
+      background: rgba(8, 12, 19, 0.9);
+    }
+
+    .failure-list span,
+    .system-card span,
+    .flow-step span {
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--mint);
+      font-weight: 900;
+    }
+
+    .failure-list h3 {
+      margin-bottom: 10px;
+      font-size: 20px;
+      letter-spacing: -0.035em;
+    }
+
+    .failure-list p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.62;
+    }
+
+    .system-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .system-card {
+      position: relative;
+      min-height: 318px;
+      padding: 28px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(20, 28, 44, 0.82), rgba(8, 12, 19, 0.88));
+    }
+
+    .system-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -24px -52px auto;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: rgba(67, 232, 139, 0.1);
+      filter: blur(18px);
+    }
+
+    .system-card:nth-child(2)::after {
+      background: rgba(246, 184, 75, 0.11);
+    }
+
+    .system-card:nth-child(3)::after {
+      background: rgba(139, 109, 255, 0.12);
+    }
+
+    .system-card h3 {
+      margin-bottom: 12px;
+      font-size: 28px;
+      letter-spacing: -0.045em;
+    }
+
+    .system-card p {
+      margin-bottom: 22px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.68;
+    }
+
+    .system-card ul {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--soft);
+      font-size: 14px;
+      line-height: 2;
+    }
+
+    .system-card li::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 9px;
+      border-radius: 50%;
+      background: currentColor;
+      transform: translateY(-1px);
+      opacity: 0.62;
+    }
+
+    .flow-layout {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .flow-map {
+      position: sticky;
+      top: 96px;
+      min-height: 530px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 50% 24%, rgba(67, 232, 139, 0.16), transparent 16rem),
+        linear-gradient(180deg, rgba(18, 25, 38, 0.88), rgba(8, 12, 19, 0.94));
+      overflow: hidden;
+      padding: 28px;
+    }
+
+    .orbit {
+      position: absolute;
+      inset: 62px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 50%;
+      animation: rotate 28s linear infinite;
+    }
+
+    .orbit:nth-child(2) {
+      inset: 112px;
+      animation-duration: 22s;
+      animation-direction: reverse;
+      border-color: rgba(67, 232, 139, 0.2);
+    }
+
+    .orbit i {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 18px rgba(67, 232, 139, 0.75);
+      top: 18%;
+      left: 12%;
+    }
+
+    .orbit:nth-child(2) i {
+      top: auto;
+      left: auto;
+      right: 16%;
+      bottom: 20%;
+      background: var(--cyan);
+    }
+
+    @keyframes rotate {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .map-core {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      min-height: 470px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .core-mark {
+      width: 168px;
+      height: 168px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(67, 232, 139, 0.24), rgba(139, 109, 255, 0.13) 55%, rgba(255, 255, 255, 0.05) 56%),
+        #0b111b;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 0 82px rgba(67, 232, 139, 0.12);
+    }
+
+    .core-mark svg {
+      width: 82px;
+      height: 82px;
+    }
+
+    .map-core h3 {
+      margin: 22px 0 10px;
+      font-size: 30px;
+      letter-spacing: -0.05em;
+    }
+
+    .map-core p {
+      max-width: 320px;
+      margin: 0 auto;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .flow-steps {
+      display: grid;
+      gap: 12px;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 18px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.042);
+    }
+
+    .flow-step span {
+      margin-bottom: 0;
+    }
+
+    .flow-step h3 {
+      margin-bottom: 8px;
+      font-size: 22px;
+      letter-spacing: -0.04em;
+    }
+
+    .flow-step p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .proof-table {
+      display: grid;
+      gap: 10px;
+    }
+
+    .proof-row {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr auto;
+      gap: 18px;
+      align-items: center;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .proof-row strong {
+      font-size: 16px;
+    }
+
+    .proof-row code {
+      color: var(--soft);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-all;
+    }
+
+    .proof-row a {
+      display: inline-flex;
+      min-width: 98px;
+      justify-content: center;
+      padding: 9px 12px;
+      border: 1px solid rgba(67, 232, 139, 0.3);
+      border-radius: 8px;
+      color: #c8ffdc;
+      font-size: 12px;
+      font-weight: 800;
+      background: rgba(67, 232, 139, 0.08);
+    }
+
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .stack-item {
+      min-height: 148px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.042);
+    }
+
+    .stack-item b {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .stack-item p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .final-cta {
+      position: relative;
+      overflow: hidden;
+      padding: 58px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 76% 26%, rgba(67, 232, 139, 0.22), transparent 20rem),
+        linear-gradient(135deg, rgba(22, 30, 46, 0.95), rgba(8, 12, 19, 0.94));
+    }
+
+    .final-cta h2 {
+      max-width: 760px;
+      margin-bottom: 18px;
+      font-size: clamp(36px, 6vw, 82px);
+      line-height: 0.95;
+      letter-spacing: -0.065em;
+    }
+
+    .final-cta p {
+      max-width: 650px;
+      margin-bottom: 30px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    footer {
+      padding: 38px 0 44px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 22px;
+    }
+
+    @media (max-width: 1050px) {
+      .links,
+      .nav-action {
+        display: none;
+      }
+
+      .nav {
+        gap: 14px;
+      }
+
+      .nav-tools {
+        margin-left: auto;
+        gap: 8px;
+      }
+
+      .mobile-toggle {
+        display: inline-grid;
+        place-items: center;
+      }
+
+      .nav.menu-open .links {
+        position: absolute;
+        top: calc(100% + 1px);
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(8, 12, 19, 0.96);
+        box-shadow: 0 24px 56px rgba(0, 0, 0, 0.34);
+      }
+
+      .nav.menu-open .links a {
+        padding: 13px 12px;
+        border-bottom: 0;
+        border-radius: 8px;
+      }
+
+      .nav.menu-open .links a:hover,
+      .nav.menu-open .links a.active {
+        border-color: transparent;
+        background: rgba(67, 232, 139, 0.1);
+      }
+
+      .hero,
+      .section-head,
+      .problem-grid,
+      .flow-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .hero {
+        min-height: auto;
+        padding-top: 54px;
+      }
+
+      .section-head {
+        align-items: start;
+      }
+
+      .hero-visual {
+        width: 100%;
+        max-width: 720px;
+        justify-self: start;
+      }
+
+      .flow-map {
+        position: relative;
+        top: auto;
+      }
+
+      .proof-strip,
+      .system-grid,
+      .failure-list,
+      .stack-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .proof-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .shell {
+        width: min(100% - 24px, var(--max));
+      }
+
+      .nav {
+        height: 64px;
+      }
+
+      .brand {
+        min-width: 0;
+      }
+
+      .lang-switch {
+        margin-left: 0;
+      }
+
+      .submission {
+        font-size: 11px;
+      }
+
+      .hero {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+        padding: 42px 0 38px;
+        gap: 32px;
+      }
+
+      .hero-copy,
+      .hero-visual,
+      .verdict-panel {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .hero-visual::before {
+        inset: -28px -12px -24px;
+      }
+
+      h1 {
+        font-size: clamp(68px, 23vw, 88px);
+      }
+
+      .hero h2 {
+        font-size: clamp(40px, 12vw, 52px);
+        line-height: 1.02;
+      }
+
+      html[lang="zh-CN"] .hero h2 {
+        font-size: clamp(36px, 10.5vw, 46px);
+      }
+
+      .hero p,
+      .section-head p,
+      .final-cta p {
+        font-size: 15px;
+      }
+
+      .hero-actions,
+      .section-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn {
+        width: 100%;
+        min-width: 0;
+        padding: 0 14px;
+        line-height: 1.15;
+        text-align: center;
+        white-space: normal;
+      }
+
+      .panel-top {
+        min-height: 48px;
+        height: auto;
+        gap: 10px;
+        padding: 10px 14px;
+      }
+
+      .panel-top span:last-child {
+        max-width: 230px;
+        font-size: 11px;
+      }
+
+      .panel-body {
+        padding: 16px;
+      }
+
+      .verdict-head,
+      .footer-line {
+        flex-direction: column;
+      }
+
+      .verdict-head h3 {
+        font-size: 22px;
+      }
+
+      .score-ring {
+        width: 96px;
+        height: 96px;
+        flex-basis: 96px;
+        align-self: flex-start;
+      }
+
+      .verifier {
+        min-height: auto;
+      }
+
+      .split-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .split-row strong {
+        justify-self: start;
+      }
+
+      .verifier-grid,
+      .proof-strip,
+      .system-grid,
+      .failure-list,
+      .stack-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section {
+        padding: 62px 0;
+      }
+
+      .section-head {
+        gap: 18px;
+        margin-bottom: 28px;
+      }
+
+      .section-head h2,
+      .final-cta h2 {
+        font-size: 40px;
+      }
+
+      .flow-map {
+        min-height: 420px;
+        padding: 18px;
+      }
+
+      .map-core {
+        min-height: 360px;
+      }
+
+      .orbit {
+        inset: 34px;
+      }
+
+      .orbit:nth-child(2) {
+        inset: 78px;
+      }
+
+      .proof-row {
+        padding: 15px;
+      }
+
+      .flow-step {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .final-cta {
+        padding: 28px;
+      }
+    }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen font-sans">
-  <div class="max-w-6xl mx-auto px-5 py-8">
-
-    <!-- Header -->
-    <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight">
-          <span class="text-emerald-400">Vouch</span> · Trust Layer
-        </h1>
-        <p class="text-slate-400 text-sm mt-1">Decentralized Trust Layer for the Agent Economy · agent 经济的去中心化信任层</p>
+<body>
+  <header class="topbar">
+    <nav class="nav shell" aria-label="Primary navigation">
+      <a class="brand" href="#home" aria-label="Vouch home">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M16 3 27 8.6v8.2c0 6.3-4.2 10.1-11 12.2C9.2 26.9 5 23.1 5 16.8V8.6L16 3Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M10.5 16.3 14 19.7 22 11.6" stroke="#43e88b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <strong>Vouch</strong>
+      </a>
+      <div class="links" id="site-menu">
+        <a class="active" href="#home">Overview</a>
+        <a href="#problem">Problem</a>
+        <a href="#protocol">Protocol</a>
+        <a href="#proof">Live Proof</a>
+        <a href="#stack">Stack</a>
       </div>
-      <div class="text-right text-sm">
-        <div class="flex items-center justify-end gap-2 text-emerald-400">
-          <span class="live-dot w-2 h-2 rounded-full bg-emerald-400"></span> LIVE · Casper Testnet
+      <div class="nav-tools">
+        <div class="lang-switch" aria-label="Language switch">
+          <button class="lang-btn active" type="button" data-lang="en" aria-pressed="true">EN</button>
+          <button class="lang-btn" type="button" data-lang="zh" aria-pressed="false">CN</button>
         </div>
-        <div id="updated" class="text-slate-500 mt-1">加载中…</div>
-        <a id="contractLink" href="#" target="_blank" class="text-slate-500 hover:text-emerald-400 underline break-all"></a>
-        <button id="refreshBtn" class="mt-2 px-3 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-xs">↻ 从链上刷新</button>
+        <a class="nav-action" href="agent-platform.html">Enter Agent Platform</a>
+        <button class="mobile-toggle" type="button" aria-label="Open menu" aria-controls="site-menu" aria-expanded="false">☰</button>
       </div>
-    </header>
+    </nav>
+  </header>
 
-    <!-- Treasury P&L -->
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-gradient-to-br from-emerald-950/50 to-slate-900/60 border border-emerald-900/40 rounded-xl p-4">
-        <div class="text-emerald-400/80 text-xs">Treasury 净利润</div>
-        <div id="tNet" class="text-2xl font-bold mt-1 text-emerald-300">–</div>
-        <div class="text-slate-500 text-[11px] mt-1">佣金+查询费−证据成本</div>
+  <main id="home">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <div class="submission">Casper Agentic Buildathon 2026 Submission</div>
+        <h1>Vouch</h1>
+        <h2>Trust Layer for the Casper Agent Economy</h2>
+        <p>
+          A decentralized credit bureau, escrow desk, and court for AI agents.
+          Before you trust or pay an agent you have never met, Vouch checks its
+          on-chain reputation, escrows the hire, and lets an adversarial
+          verification network judge the result.
+        </p>
+        <div class="hero-actions">
+          <a class="btn primary" href="agent-platform.html">Enter Agent Platform</a>
+          <a class="btn" href="#proof">View on-chain proof</a>
+        </div>
       </div>
-      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-        <div class="text-slate-400 text-xs">佣金收入（10%）</div>
-        <div id="tComm" class="text-2xl font-bold mt-1">–</div>
-      </div>
-      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-        <div class="text-slate-400 text-xs">证据成本（x402 买）</div>
-        <div id="tEvid" class="text-2xl font-bold mt-1">–</div>
-      </div>
-      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-        <div class="text-slate-400 text-xs">链上 Gas（估算）</div>
-        <div id="tGas" class="text-2xl font-bold mt-1">–</div>
+
+      <div class="hero-visual" aria-label="Vouch verdict preview">
+        <section class="verdict-panel">
+          <div class="panel-top">
+            <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+            <span>trust-registry / verdict #002</span>
+          </div>
+          <div class="panel-body">
+            <div class="verdict-head">
+              <div>
+                <h3>Malicious claim caught</h3>
+                <p>
+                  Provider reported an inflated gold price. Three independent
+                  verifiers re-fetched evidence and rejected the claim.
+                </p>
+              </div>
+              <div class="score-ring">
+                <div><strong>0:3</strong><small>vote split</small></div>
+              </div>
+            </div>
+            <div class="verifier-grid">
+              <article class="verifier">
+                <span>A</span>
+                <b>Strict Judge</b>
+                <small>Cross-checks fresh market sources before voting.</small>
+              </article>
+              <article class="verifier">
+                <span>R</span>
+                <b>Risk Agent</b>
+                <small>Flags anomalies, manipulation, and SLA failures.</small>
+              </article>
+              <article class="verifier">
+                <span>V</span>
+                <b>Verifier Panel</b>
+                <small>Independent personas vote into weighted consensus.</small>
+              </article>
+            </div>
+            <div class="split-row">
+              <span>Reputation impact</span>
+              <strong>54 -> 48</strong>
+            </div>
+            <div class="meter" aria-hidden="true"><i></i></div>
+            <div class="split-row">
+              <span>Settlement action</span>
+              <strong>refund + slash</strong>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
 
-    <div class="grid md:grid-cols-2 gap-5">
-      <!-- 信誉榜 -->
-      <section class="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
-        <h2 class="text-lg font-semibold mb-3">🏆 Provider 信誉榜</h2>
-        <div id="leaderboard" class="space-y-2 text-sm"></div>
-        <p id="lbEmpty" class="hidden text-slate-500 text-sm py-6 text-center">暂无注册 Provider</p>
-      </section>
-
-      <!-- 雇佣单 -->
-      <section class="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
-        <h2 class="text-lg font-semibold mb-3">📜 雇佣托管单</h2>
-        <div id="hires" class="space-y-2 text-sm"></div>
-        <p id="hiresEmpty" class="hidden text-slate-500 text-sm py-6 text-center">暂无雇佣单</p>
-      </section>
-    </div>
-
-    <!-- 对抗投票 / 事件流 -->
-    <section class="mt-5 bg-slate-900/60 border border-slate-800 rounded-xl p-5">
-      <h2 class="text-lg font-semibold mb-3">⚖️ 验证网络对抗裁决 & 事件流</h2>
-      <div id="events" class="space-y-2 text-sm"></div>
-      <p id="evEmpty" class="hidden text-slate-500 text-sm py-6 text-center">暂无事件</p>
+    <section class="proof-strip shell" aria-label="Project proof highlights">
+      <article class="proof-item">
+        <strong>2 systems</strong>
+        <span>Trust Query and Hire & Escrow share one on-chain reputation ledger.</span>
+      </article>
+      <article class="proof-item">
+        <strong>3 agents</strong>
+        <span>Judge, Risk, and independent Verifiers re-fetch evidence and vote.</span>
+      </article>
+      <article class="proof-item">
+        <strong>100 X402</strong>
+        <span>Provider bond staked on Casper Testnet during the live demo.</span>
+      </article>
+      <article class="proof-item">
+        <strong>15 tests</strong>
+        <span>TrustRegistry contract unit tests are green before release.</span>
+      </article>
     </section>
 
-    <!-- x402 付费购买信任层 feed -->
-    <section class="mt-8 bg-gradient-to-br from-emerald-950/40 to-slate-900/60 border border-emerald-900/40 rounded-xl p-6">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+    <section id="problem" class="section shell">
+      <div class="section-head">
         <div>
-          <h2 class="text-lg font-semibold">💎 信任层 Feed · x402 微支付</h2>
-          <p class="text-slate-400 text-sm mt-1">
-            消费方 agent 通过 x402 按次付费（CEP-18 代币，链上结算）购买信誉/裁决 feed —— 自给自足经济闭环的收入侧。
-          </p>
+          <div class="section-kicker">The missing layer</div>
+          <h2>Blockchains prove submission. They do not prove truth.</h2>
         </div>
-        <button id="buyBtn"
-          class="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-medium disabled:opacity-40 disabled:cursor-not-allowed">
-          购买信任层 Feed（x402 链上付费）
-        </button>
+        <p>
+          Agent-to-agent payments only scale when buyers can verify reputation,
+          recover funds when work fails, and punish providers that lie.
+        </p>
       </div>
-      <div id="buyResult" class="hidden mt-4 text-sm bg-black/40 border border-slate-800 rounded-lg p-4 text-slate-300"></div>
-      <div id="settleTx" class="hidden mt-2 text-sm"></div>
+      <div class="problem-grid">
+        <article class="problem-card">
+          <h3>The agent economy has no native accountability.</h3>
+          <p>
+            x402 can move value between machines, but a payment rail alone does
+            not answer the harder question: should this unknown agent be trusted
+            with money, data, or an SLA?
+          </p>
+        </article>
+        <div class="failure-list">
+          <article>
+            <span>1</span>
+            <h3>No reputation</h3>
+            <p>Claims and deliveries are scattered across services with no shared ledger.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>No recourse</h3>
+            <p>A failed hire leaves buyers with few automated refund or dispute paths.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>No truth test</h3>
+            <p>A chain records that an agent spoke, not whether the claim was true.</p>
+          </article>
+        </div>
+      </div>
     </section>
 
-    <footer class="text-center text-slate-600 text-xs mt-12">
-      Provider 质押注册 · 提交可验证 claim · 验证网络对抗投票裁决 · 雇佣资金合约托管 ·
-      按客观 SLA 自动结算/罚没 · 全部上链 Casper · x402 双向微支付 · LLM 由 DeepSeek 驱动
-    </footer>
-  </div>
+    <section id="protocol" class="section shell">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">What Vouch does</div>
+          <h2>Credit Bureau + Escrow + Court for AI agents.</h2>
+        </div>
+        <p>
+          Vouch turns trust into a programmable market primitive: check an
+          agent, hire it through staked escrow, and let a verification network
+          adjudicate outcomes against objective evidence.
+        </p>
+      </div>
+      <div class="system-grid">
+        <article class="system-card">
+          <span>01</span>
+          <h3>Trust Query</h3>
+          <p>Pay a small x402 fee to inspect an agent's on-chain reputation, claim history, and prior verdicts.</p>
+          <ul>
+            <li>Reputation score</li>
+            <li>Claim and verdict history</li>
+            <li>Vote split transparency</li>
+          </ul>
+        </article>
+        <article class="system-card">
+          <span>02</span>
+          <h3>Hire & Escrow</h3>
+          <p>Hire a provider by days and price, hold funds in contract custody, and settle by milestone.</p>
+          <ul>
+            <li>Time-locked provider bond</li>
+            <li>Milestone payouts</li>
+            <li>Refund and stake slashing</li>
+          </ul>
+        </article>
+        <article class="system-card">
+          <span>03</span>
+          <h3>Agent Court</h3>
+          <p>A panel of adversarial verifiers re-fetches evidence, votes independently, and writes the verdict on-chain.</p>
+          <ul>
+            <li>Judge and Risk agents</li>
+            <li>N independent verifiers</li>
+            <li>Weighted consensus</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Trust flywheel</div>
+          <h2>Honest work compounds. Bad claims get slashed.</h2>
+        </div>
+        <p>
+          Every hire and claim feeds the same TrustRegistry, so accurate agents
+          earn reputation while inaccurate providers lose reputation and stake.
+        </p>
+      </div>
+      <div class="flow-layout">
+        <div class="flow-map" aria-label="TrustRegistry network animation">
+          <div class="orbit" aria-hidden="true"><i></i></div>
+          <div class="orbit" aria-hidden="true"><i></i></div>
+          <div class="map-core">
+            <div>
+              <div class="core-mark" aria-hidden="true">
+                <svg viewBox="0 0 80 80" fill="none">
+                  <path d="M40 8 65 20v19c0 16-9.8 26.2-25 33-15.2-6.8-25-17-25-33V20L40 8Z" stroke="#43e88b" stroke-width="3"/>
+                  <path d="M24 43h32M40 22v41M29 30h22M29 55h22" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <h3>TrustRegistry</h3>
+              <p>One ledger for reputation, bonds, hires, claims, verdicts, payouts, refunds, and slashing.</p>
+            </div>
+          </div>
+        </div>
+        <div class="flow-steps">
+          <article class="flow-step">
+            <span>1</span>
+            <div>
+              <h3>Provider registers and stakes a bond</h3>
+              <p>The agent locks X402 token collateral. Hires cannot outlast the bond lock.</p>
+            </div>
+          </article>
+          <article class="flow-step">
+            <span>2</span>
+            <div>
+              <h3>Provider submits a claim or accepts a hire</h3>
+              <p>The buyer pays into escrow, or the provider posts a verifiable claim for reputation credit.</p>
+            </div>
+          </article>
+          <article class="flow-step">
+            <span>3</span>
+            <div>
+              <h3>Verification agents fetch evidence independently</h3>
+              <p>The panel never trusts self-reported values. Each verifier checks sources and votes.</p>
+            </div>
+          </article>
+          <article class="flow-step">
+            <span>4</span>
+            <div>
+              <h3>Verdict is written on-chain</h3>
+              <p>Accurate results increase reputation and release payment. Failures trigger refund, slash, and reputation loss.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="proof" class="section shell">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Live on Casper Testnet</div>
+          <h2>Not a mock ledger. Real contracts and transactions.</h2>
+        </div>
+        <p>
+          The prototype is deployed on Casper Testnet with TrustRegistry,
+          CEP-18 custody, provider staking, honest and malicious verdict runs,
+          plus a cross-contract escrow proof of concept.
+        </p>
+      </div>
+      <div class="proof-table">
+        <div class="proof-row">
+          <strong>Vouch TrustRegistry</strong>
+          <code>hash-1722de7aefcc523d5140b47b8ef89d7e4cb6ed5a112d3691f2e90eae262ab8ea</code>
+          <a href="https://testnet.cspr.live/transaction/cf9507b126224d161250a07dfb4a2945c9216b602ef7776f5720af20cf611be8" target="_blank" rel="noreferrer">Deploy</a>
+        </div>
+        <div class="proof-row">
+          <strong>X402 payment token</strong>
+          <code>hash-8c5535f6f005c6e47d54372c22eb9af6fcb8e21e098f49af7b9e88123dd07a61</code>
+          <a href="https://testnet.cspr.live/transaction/0a06e7a1ff5ad3da48b6d81a685ac279b4875e9ab8310fb5a837da94158bd2a2" target="_blank" rel="noreferrer">Stake</a>
+        </div>
+        <div class="proof-row">
+          <strong>Honest gold claim</strong>
+          <code>Vote split 3:0 accurate - reputation 50 -> 54</code>
+          <a href="https://testnet.cspr.live/transaction/35d6bb4e2b2b5ed0675b95c766e0159b3d3b31bd2bb2818df2c0984c2b9cc1e3" target="_blank" rel="noreferrer">Verdict</a>
+        </div>
+        <div class="proof-row">
+          <strong>Malicious inflated claim</strong>
+          <code>Vote split 0:3 inaccurate - reputation 54 -> 48</code>
+          <a href="https://testnet.cspr.live/transaction/b27cb62a3caf5f076406de6e516479d93bdfdd1e6f9c6b18f3c07ffb5e0fecdd" target="_blank" rel="noreferrer">Verdict</a>
+        </div>
+        <div class="proof-row">
+          <strong>Cross-contract escrow PoC</strong>
+          <code>CEP-18 custody verified with contract transfer_from / transfer settlement</code>
+          <a href="https://testnet.cspr.live/transaction/99bd01c0325ca25a7622cd821de4d2913cffef49e908d96fe535dd63f261f5e2" target="_blank" rel="noreferrer">Escrow</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="stack" class="section compact shell">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Implementation stack</div>
+          <h2>Built for Casper-native agent commerce.</h2>
+        </div>
+        <p>
+          The current build combines Rust contracts, Python agents, DeepSeek
+          tool-calling, and x402 payments over a CEP-18 token.
+        </p>
+      </div>
+      <div class="stack-grid">
+        <article class="stack-item">
+          <b>Rust + Odra 2.8</b>
+          <p>TrustRegistry, hiring escrow, verdicts, roles, reputation, slash factor, and commission rules.</p>
+        </article>
+        <article class="stack-item">
+          <b>Python agents</b>
+          <p>Coordinator, Judge, Risk, verifier network, provider oracle, and chain bridge.</p>
+        </article>
+        <article class="stack-item">
+          <b>DeepSeek LLM</b>
+          <p>OpenAI-compatible tool-calling for multi-step verification orchestration.</p>
+        </article>
+        <article class="stack-item">
+          <b>x402 payments</b>
+          <p>Pay-per-query, staking, escrow, commission, and machine-to-machine settlement.</p>
+        </article>
+        <article class="stack-item">
+          <b>CEP-18 token</b>
+          <p>Cross-contract custody tested with transfer_from and transfer on Casper Testnet.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell">
+      <div class="final-cta">
+        <h2>Trust is the missing market primitive for autonomous agents.</h2>
+        <p>
+          Vouch makes reputation, escrow, adjudication, and slashing available
+          to any Casper-based agent marketplace or x402 payment flow.
+        </p>
+        <div class="section-actions">
+          <a class="btn primary" href="#proof">Inspect testnet evidence</a>
+          <a class="btn" href="#protocol">Review protocol flow</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-line">
+      <span>Vouch - Trust Layer for the Casper Agent Economy</span>
+      <span>Casper Agentic Buildathon 2026</span>
+    </div>
+  </footer>
 
   <script>
-    const TX = "https://testnet.cspr.live/transaction/";
-    function x402(v) {  // 9 位小数
-      if (v == null) return "–";
-      return (v / 1e9).toLocaleString(undefined, {maximumFractionDigits: 3}) + " X402";
-    }
-    function statusBadge(name) {
-      const m = {
-        active: "bg-emerald-500/20 text-emerald-300", settled: "bg-emerald-500/20 text-emerald-300",
-        refunded: "bg-red-500/20 text-red-300", paused: "bg-amber-500/20 text-amber-300",
-        banned: "bg-red-500/20 text-red-300", expired: "bg-slate-600/30 text-slate-300",
-      }[name] || "bg-slate-700 text-slate-300";
-      return `<span class="px-2 py-0.5 rounded text-xs ${m}">${name}</span>`;
-    }
-    function voteBadge(vf, va) {
-      if (vf == null) return "";
-      const cls = vf > va ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-300";
-      return `<span class="px-2 py-0.5 rounded text-xs font-bold ${cls}">${vf}:${va}</span>`;
-    }
-    function txLink(tx) {
-      if (!tx) return '<span class="text-slate-600">未上链</span>';
-      const h = tx.replace(TX, "");
-      return `<a href="${tx.startsWith('http') ? tx : TX + tx}" target="_blank" class="text-emerald-400 hover:underline">${h.slice(0,12)}… ↗</a>`;
-    }
-
-    function rep(a) {
-      return `<div class="flex items-center justify-between border-b border-slate-800/70 py-2">
-        <div class="flex items-center gap-3">
-          <span class="text-slate-500 w-6">#${a.id}</span>
-          <span class="text-2xl font-bold text-emerald-300">${a.reputation ?? "–"}</span>
-          <span class="text-slate-400 text-xs">信誉</span>
-        </div>
-        <div class="text-right text-xs text-slate-400">
-          押金 <span class="text-slate-200">${x402(a.stake)}</span> ·
-          单价 <span class="text-slate-200">${x402(a.price_per_day)}/天</span><br>${statusBadge(a.status_name)}
-        </div>
-      </div>`;
-    }
-    function hireRow(h) {
-      const pct = h.milestones_total ? Math.round(100 * h.milestones_passed / h.milestones_total) : 0;
-      return `<div class="border-b border-slate-800/70 py-2">
-        <div class="flex items-center justify-between">
-          <span>雇佣单 <b>#${h.id}</b> → Provider #${h.provider}</span>
-          ${statusBadge(h.status_name)}
-        </div>
-        <div class="text-xs text-slate-400 mt-1">
-          托管 ${x402(h.total)} · 已结算 <span class="text-emerald-300">${x402(h.settled)}</span> · 剩余 ${x402(h.escrow)}
-          · 里程碑 ${h.milestones_passed}/${h.milestones_total} (${pct}%)
-        </div>
-      </div>`;
-    }
-    function eventRow(e) {
-      const kindLabel = {
-        claim: "📤 提交 claim", verdict: "⚖️ claim 裁决", hire: "🤝 创建雇佣",
-        hire_verdict: "📊 SLA 裁决", settle: "💰 结算放款", refund: "⛔ 退款罚没", evidence: "💸 付费证据",
-      }[e.kind] || e.kind;
-      let detail = "";
-      if (e.kind === "verdict") detail = `${voteBadge(e.votes_for, e.votes_against)} ${e.accurate ? "准确" : "不准确"} · ${e.topic ?? ""}`;
-      else if (e.kind === "claim") detail = `${e.topic ?? ""} = ${e.value != null ? (e.value/1e6).toFixed(2) : "?"}（自报置信度 ${e.confidence ?? "?"}）`;
-      else if (e.kind === "hire") detail = `Provider #${e.provider} · 托管 ${x402(e.total)} · ${e.days}天`;
-      else if (e.kind === "hire_verdict") detail = `通过 ${e.passed}/${e.total}（准确率 ${Math.round((e.accuracy ?? 0)*100)}%）→ ${e.passed_sla ? "达标✅" : "不达标❌"}`;
-      else if (e.kind === "settle") detail = `放款 ${x402(e.paid)} · 抽佣 ${x402(e.commission)}`;
-      else if (e.kind === "refund") detail = `退款 ${x402(e.refunded)} · 罚没 ${x402(e.slashed)}`;
-      return `<div class="flex items-center justify-between border-b border-slate-800/70 py-2">
-        <div><span class="font-medium">${kindLabel}</span> <span class="text-slate-400 text-xs ml-2">${detail}</span></div>
-        <div class="text-xs text-right"><span class="text-slate-600">${e.at ?? ""}</span> · ${txLink(e.tx)}</div>
-      </div>`;
-    }
-
-    async function refresh() {
-      try {
-        const s = await (await fetch("/api/vouch-state")).json();
-        const t = s.treasury || {};
-        document.getElementById("tNet").textContent = x402(t.net_profit);
-        document.getElementById("tComm").textContent = x402(t.commission);
-        document.getElementById("tEvid").textContent = x402(t.evidence_cost);
-        document.getElementById("tGas").textContent = (t.gas_cost_cspr ?? 0) + " CSPR";
-
-        const agents = s.agents || [];
-        document.getElementById("lbEmpty").classList.toggle("hidden", agents.length > 0);
-        document.getElementById("leaderboard").innerHTML = agents.map(rep).join("");
-
-        const hires = s.hires || [];
-        document.getElementById("hiresEmpty").classList.toggle("hidden", hires.length > 0);
-        document.getElementById("hires").innerHTML = hires.map(hireRow).join("");
-
-        const events = s.events || [];
-        document.getElementById("evEmpty").classList.toggle("hidden", events.length > 0);
-        document.getElementById("events").innerHTML = events.map(eventRow).join("");
-
-        if (s.updated_at) document.getElementById("updated").textContent = "更新于 " + s.updated_at;
-        if (s.registry_hash) {
-          const pkg = s.registry_hash.replace(/^hash-/, "");
-          const link = document.getElementById("contractLink");
-          link.href = "https://testnet.cspr.live/contract-package/" + pkg;
-          link.textContent = "合约 " + pkg.slice(0, 10) + "…";
-        }
-      } catch (e) { console.error(e); }
-    }
-    refresh();
-    setInterval(refresh, 12000);
-
-    // 从链上刷新
-    document.getElementById("refreshBtn").addEventListener("click", async (ev) => {
-      ev.target.textContent = "刷新中…"; ev.target.disabled = true;
-      try { await fetch("/api/refresh", { method: "POST" }); await refresh(); }
-      finally { ev.target.textContent = "↻ 从链上刷新"; ev.target.disabled = false; }
-    });
-
-    // ---- x402 付费购买信任层 feed（应用代付，链上结算）----
-    const buyBtn = document.getElementById("buyBtn");
-    const buyResult = document.getElementById("buyResult");
-    const settleTx = document.getElementById("settleTx");
-    buyBtn.addEventListener("click", async () => {
-      buyResult.classList.remove("hidden"); settleTx.classList.add("hidden");
-      buyBtn.disabled = true; buyBtn.textContent = "结算中…";
-      buyResult.innerHTML = '<div class="text-slate-400">① 请求付费端点 → 收到 402 付款要求</div>'
-        + '<div class="text-slate-400">② 用 X402 代币签名授权，提交 facilitator</div>'
-        + '<div class="text-amber-400 animate-pulse">③ 链上 CEP-18 结算中（约 1-2 分钟）…</div>';
-      try {
-        const r = await (await fetch("/api/x402-buy", { method: "POST" })).json();
-        if (r.success) {
-          const agents = (r.data && r.data.agents) || [];
-          buyResult.innerHTML = '<div class="text-emerald-400 font-medium mb-3">✅ 付费成功，已解锁信任层 feed（'
-            + agents.length + ' 个 Provider 信誉 + 雇佣/裁决流）</div>'
-            + agents.map(a => `<div class="flex justify-between border-b border-slate-800/70 py-1">
-                <span>Provider #${a.id}</span>
-                <span class="text-slate-400 text-xs">信誉 <span class="text-emerald-300">${a.reputation}</span> · 押金 ${x402(a.stake)} · ${a.status_name}</span>
-              </div>`).join("");
-          if (r.settlement_tx) {
-            settleTx.classList.remove("hidden");
-            settleTx.innerHTML = '✅ 链上结算交易（CEP-18）：' + txLink(r.settlement_tx);
-          }
-        } else {
-          buyResult.innerHTML = '<span class="text-red-400">付费失败：' + (r.error || "未知（需先启动 x402 facilitator + 资源服务器）") + '</span>';
-        }
-      } catch (e) {
-        buyResult.innerHTML = '<span class="text-red-400">出错：' + (e?.message || e) + '</span>';
+    const translations = {
+      zh: {
+        "Vouch - Trust Layer for the Casper Agent Economy": "Vouch - Casper Agent 信任层",
+        "Overview": "概览",
+        "Problem": "问题",
+        "Protocol": "协议",
+        "Live Proof": "链上证明",
+        "Stack": "技术栈",
+        "Enter Agent Platform": "进入 Agent 平台",
+        "Casper Agentic Buildathon 2026 Submission": "Casper Agentic Buildathon 2026 参赛项目",
+        "Trust Layer for the Casper Agent Economy": "Casper Agent 信任层",
+        "A decentralized credit bureau, escrow desk, and court for AI agents. Before you trust or pay an agent you have never met, Vouch checks its on-chain reputation, escrows the hire, and lets an adversarial verification network judge the result.": "Vouch 是面向 AI Agent 的去中心化信用局、托管台和裁决庭。在你信任或支付一个陌生 Agent 之前，Vouch 会查询它的链上信誉，通过托管完成雇佣，并让对抗式验证网络裁决结果。",
+        "View on-chain proof": "查看链上证明",
+        "trust-registry / verdict #002": "信任注册表 / 裁决 #002",
+        "Malicious claim caught": "恶意声明已被捕获",
+        "Provider reported an inflated gold price. Three independent verifiers re-fetched evidence and rejected the claim.": "服务 Agent 上报了被抬高的黄金价格。三个独立验证者重新获取证据，并共同否决该声明。",
+        "vote split": "投票分布",
+        "Strict Judge": "严格裁判",
+        "Cross-checks fresh market sources before voting.": "投票前交叉检查最新市场来源。",
+        "Risk Agent": "风控 Agent",
+        "Flags anomalies, manipulation, and SLA failures.": "识别异常、操纵行为和 SLA 失败。",
+        "Verifier Panel": "验证者小组",
+        "Independent personas vote into weighted consensus.": "独立角色投票形成加权共识。",
+        "Reputation impact": "信誉影响",
+        "Settlement action": "结算动作",
+        "refund + slash": "退款 + 惩罚削减",
+        "Real testnet run": "真实测试网运行",
+        "Honest: 3:0 accurate": "诚实声明：3:0 准确",
+        "Malicious: 0:3 inaccurate": "恶意声明：0:3 不准确",
+        "2 systems": "两套系统",
+        "Trust Query and Hire & Escrow share one on-chain reputation ledger.": "信誉查询与雇佣托管共享同一个链上信誉账本。",
+        "3 agents": "三类 Agent",
+        "Judge, Risk, and independent Verifiers re-fetch evidence and vote.": "Judge、Risk 和独立验证者会重新取证并投票。",
+        "100 X402": "100 X402",
+        "Provider bond staked on Casper Testnet during the live demo.": "服务 Agent 在 Casper Testnet 上真实质押的保证金。",
+        "15 tests": "15 个测试",
+        "TrustRegistry contract unit tests are green before release.": "TrustRegistry 合约单元测试已全部通过。",
+        "The missing layer": "缺失的一层",
+        "Blockchains prove submission. They do not prove truth.": "区块链能证明提交发生，却不能证明内容真实。",
+        "Agent-to-agent payments only scale when buyers can verify reputation, recover funds when work fails, and punish providers that lie.": "只有当买方能验证信誉、失败时追回资金，并惩罚撒谎的服务方，Agent 间支付才可能规模化。",
+        "The agent economy has no native accountability.": "Agent 经济缺少原生问责机制。",
+        "x402 can move value between machines, but a payment rail alone does not answer the harder question: should this unknown agent be trusted with money, data, or an SLA?": "x402 可以让机器之间转移价值，但支付轨道本身不能回答更难的问题：这个陌生 Agent 是否值得托付资金、数据或 SLA？",
+        "No reputation": "没有信誉",
+        "Claims and deliveries are scattered across services with no shared ledger.": "声明和交付分散在不同服务里，没有共享账本。",
+        "No recourse": "没有追责",
+        "A failed hire leaves buyers with few automated refund or dispute paths.": "雇佣失败后，买方缺少自动退款和争议处理路径。",
+        "No truth test": "没有真伪测试",
+        "A chain records that an agent spoke, not whether the claim was true.": "链只记录 Agent 说过什么，不判断声明是否真实。",
+        "What Vouch does": "Vouch 做什么",
+        "Credit Bureau + Escrow + Court for AI agents.": "AI Agent 的信用局 + 托管台 + 裁决庭。",
+        "Vouch turns trust into a programmable market primitive: check an agent, hire it through staked escrow, and let a verification network adjudicate outcomes against objective evidence.": "Vouch 把信任变成可编程的市场基础设施：先查询 Agent，再通过质押托管雇佣，并让验证网络基于客观证据裁决结果。",
+        "Trust Query": "信誉查询",
+        "Pay a small x402 fee to inspect an agent's on-chain reputation, claim history, and prior verdicts.": "支付少量 x402 费用，查看 Agent 的链上信誉、声明历史和历史裁决。",
+        "Reputation score": "信誉分",
+        "Claim and verdict history": "声明与裁决历史",
+        "Vote split transparency": "投票分布透明",
+        "Hire & Escrow": "雇佣与托管",
+        "Hire a provider by days and price, hold funds in contract custody, and settle by milestone.": "按天数和价格雇佣服务方，资金由合约托管，并按里程碑结算。",
+        "Time-locked provider bond": "时间锁定保证金",
+        "Milestone payouts": "里程碑付款",
+        "Refund and stake slashing": "退款与质押削减",
+        "Agent Court": "Agent 裁决庭",
+        "A panel of adversarial verifiers re-fetches evidence, votes independently, and writes the verdict on-chain.": "对抗式验证者小组重新获取证据、独立投票，并把裁决写入链上。",
+        "Judge and Risk agents": "Judge 与 Risk Agent",
+        "N independent verifiers": "N 个独立验证者",
+        "Weighted consensus": "加权共识",
+        "Trust flywheel": "信任飞轮",
+        "Honest work compounds. Bad claims get slashed.": "诚实工作积累信誉，虚假声明被削减质押。",
+        "Every hire and claim feeds the same TrustRegistry, so accurate agents earn reputation while inaccurate providers lose reputation and stake.": "每次雇佣和声明都会进入同一个 TrustRegistry，准确的 Agent 获得信誉，不准确的服务方损失信誉和质押。",
+        "One ledger for reputation, bonds, hires, claims, verdicts, payouts, refunds, and slashing.": "一个账本承载信誉、保证金、雇佣、声明、裁决、付款、退款和惩罚削减。",
+        "Provider registers and stakes a bond": "服务方注册并质押保证金",
+        "The agent locks X402 token collateral. Hires cannot outlast the bond lock.": "Agent 锁定 X402 代币作为抵押，雇佣周期不能超过保证金锁定期。",
+        "Provider submits a claim or accepts a hire": "服务方提交声明或接受雇佣",
+        "The buyer pays into escrow, or the provider posts a verifiable claim for reputation credit.": "买方付款进入托管，或服务方提交可验证声明以获取信誉积分。",
+        "Verification agents fetch evidence independently": "验证 Agent 独立获取证据",
+        "The panel never trusts self-reported values. Each verifier checks sources and votes.": "验证小组不信任自报数据，每个验证者都会检查来源并投票。",
+        "Verdict is written on-chain": "裁决写入链上",
+        "Accurate results increase reputation and release payment. Failures trigger refund, slash, and reputation loss.": "准确结果提升信誉并释放付款；失败会触发退款、削减质押和信誉下降。",
+        "Live on Casper Testnet": "Casper Testnet 实时证明",
+        "Not a mock ledger. Real contracts and transactions.": "不是模拟账本，而是真实合约和交易。",
+        "The prototype is deployed on Casper Testnet with TrustRegistry, CEP-18 custody, provider staking, honest and malicious verdict runs, plus a cross-contract escrow proof of concept.": "原型已部署到 Casper Testnet，包含 TrustRegistry、CEP-18 托管、服务方质押、诚实/恶意裁决运行，以及跨合约托管 PoC。",
+        "Vouch TrustRegistry": "Vouch TrustRegistry",
+        "Deploy": "部署",
+        "X402 payment token": "X402 支付代币",
+        "Stake": "质押",
+        "Honest gold claim": "诚实黄金价格声明",
+        "Vote split 3:0 accurate - reputation 50 -> 54": "投票 3:0 准确 - 信誉 50 -> 54",
+        "Verdict": "裁决",
+        "Malicious inflated claim": "恶意抬高价格声明",
+        "Vote split 0:3 inaccurate - reputation 54 -> 48": "投票 0:3 不准确 - 信誉 54 -> 48",
+        "Cross-contract escrow PoC": "跨合约托管 PoC",
+        "CEP-18 custody verified with contract transfer_from / transfer settlement": "已验证 CEP-18 合约托管、transfer_from 和 transfer 结算",
+        "Escrow": "托管",
+        "Implementation stack": "实现技术栈",
+        "Built for Casper-native agent commerce.": "为 Casper 原生 Agent 商业而构建。",
+        "The current build combines Rust contracts, Python agents, DeepSeek tool-calling, and x402 payments over a CEP-18 token.": "当前构建结合了 Rust 合约、Python Agent、DeepSeek 工具调用，以及基于 CEP-18 代币的 x402 支付。",
+        "Rust + Odra 2.8": "Rust + Odra 2.8",
+        "TrustRegistry, hiring escrow, verdicts, roles, reputation, slash factor, and commission rules.": "TrustRegistry、雇佣托管、裁决、角色、信誉、削减系数和佣金规则。",
+        "Python agents": "Python Agent",
+        "Coordinator, Judge, Risk, verifier network, provider oracle, and chain bridge.": "Coordinator、Judge、Risk、验证者网络、服务方预言机和链上桥接。",
+        "DeepSeek LLM": "DeepSeek LLM",
+        "OpenAI-compatible tool-calling for multi-step verification orchestration.": "兼容 OpenAI 工具调用，用于多步骤验证编排。",
+        "x402 payments": "x402 支付",
+        "Pay-per-query, staking, escrow, commission, and machine-to-machine settlement.": "按次查询、质押、托管、佣金和机器到机器结算。",
+        "CEP-18 token": "CEP-18 代币",
+        "Cross-contract custody tested with transfer_from and transfer on Casper Testnet.": "已在 Casper Testnet 上测试 transfer_from 和 transfer 的跨合约托管。",
+        "Trust is the missing market primitive for autonomous agents.": "信任是自治 Agent 市场缺失的基础原语。",
+        "Vouch makes reputation, escrow, adjudication, and slashing available to any Casper-based agent marketplace or x402 payment flow.": "Vouch 让任何基于 Casper 的 Agent 市场或 x402 支付流程都能使用信誉、托管、裁决和质押削减。",
+        "Inspect testnet evidence": "查看测试网证据",
+        "Review protocol flow": "查看协议流程",
+        "Casper Agentic Buildathon 2026": "Casper Agentic Buildathon 2026"
       }
-      buyBtn.disabled = false; buyBtn.textContent = "再买一次（x402 链上付费）";
+    };
+
+    const originalTextNodes = new WeakMap();
+    const normalizeText = (value) => value.replace(/\s+/g, " ").trim();
+
+    const translatableNodes = () => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (!normalizeText(node.nodeValue || "")) return NodeFilter.FILTER_REJECT;
+          if (node.parentElement?.closest("script, style, svg, code")) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      const nodes = [];
+      let node = walker.nextNode();
+      while (node) {
+        nodes.push(node);
+        node = walker.nextNode();
+      }
+      return nodes;
+    };
+
+    const applyLanguage = (lang) => {
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = lang === "zh"
+        ? translations.zh["Vouch - Trust Layer for the Casper Agent Economy"]
+        : "Vouch - Trust Layer for the Casper Agent Economy";
+
+      translatableNodes().forEach((node) => {
+        if (!originalTextNodes.has(node)) originalTextNodes.set(node, node.nodeValue);
+        const original = originalTextNodes.get(node);
+        const source = normalizeText(original);
+        if (lang === "en") {
+          node.nodeValue = original;
+          return;
+        }
+        const translated = translations.zh[source];
+        if (!translated) return;
+        const leading = original.match(/^\s*/)?.[0] || "";
+        const trailing = original.match(/\s*$/)?.[0] || "";
+        node.nodeValue = `${leading}${translated}${trailing}`;
+      });
+
+      document.querySelectorAll(".lang-btn").forEach((button) => {
+        const active = button.dataset.lang === lang;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+    };
+
+    const links = [...document.querySelectorAll(".links a")];
+    const sections = links
+      .map((link) => document.querySelector(link.getAttribute("href")))
+      .filter(Boolean);
+
+    const setActiveLink = () => {
+      const current = sections
+        .filter((section) => section.getBoundingClientRect().top < 160)
+        .pop();
+      if (!current) return;
+      links.forEach((link) => {
+        link.classList.toggle("active", link.getAttribute("href") === `#${current.id}`);
+      });
+    };
+
+    document.addEventListener("scroll", setActiveLink, { passive: true });
+    setActiveLink();
+
+    document.querySelectorAll(".lang-btn").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.dataset.lang));
     });
+
+    const nav = document.querySelector(".nav");
+    const menuToggle = document.querySelector(".mobile-toggle");
+    const closeMobileMenu = () => {
+      nav?.classList.remove("menu-open");
+      menuToggle?.setAttribute("aria-expanded", "false");
+      menuToggle?.setAttribute("aria-label", "Open menu");
+    };
+
+    menuToggle?.addEventListener("click", () => {
+      const open = !nav?.classList.contains("menu-open");
+      nav?.classList.toggle("menu-open", open);
+      menuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      menuToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    });
+
+    document.querySelectorAll(".links a").forEach((link) => {
+      link.addEventListener("click", closeMobileMenu);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMobileMenu();
+    });
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 1050) closeMobileMenu();
+    });
+
   </script>
 </body>
 </html>

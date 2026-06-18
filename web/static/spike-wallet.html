@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vouch · Wallet Spike（命门验证）</title>
+  <style>
+    :root { --bg:#06080d; --panel:rgba(16,22,34,.86); --line:rgba(161,174,201,.18);
+            --text:#f4f7fb; --muted:#9aa8bd; --mint:#43e88b; --cyan:#42d6ff; --red:#ff647c; --amber:#f6b84b; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--text); font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+           background:radial-gradient(900px 500px at 30% -10%,rgba(67,232,139,.14),transparent 60%),linear-gradient(180deg,#05060a,#08101a 60%,#05070b); }
+    .wrap { max-width:880px; margin:0 auto; padding:32px 20px 64px; }
+    h1 { font-size:24px; margin:0 0 4px; } h1 span { color:var(--mint); }
+    .sub { color:var(--muted); margin:0 0 24px; font-size:13px; }
+    .panel { border:1px solid var(--line); background:var(--panel); border-radius:10px; padding:18px 20px; margin-bottom:16px; }
+    .panel h2 { font-size:15px; margin:0 0 12px; color:var(--cyan); letter-spacing:.02em; }
+    .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    button { font:inherit; font-weight:700; cursor:pointer; min-height:42px; padding:0 18px; border-radius:8px;
+             border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--text); transition:.15s; }
+    button:hover:not(:disabled) { border-color:var(--mint); background:rgba(67,232,139,.1); transform:translateY(-1px); }
+    button:disabled { opacity:.4; cursor:not-allowed; }
+    button.primary { border-color:rgba(67,232,139,.7); background:linear-gradient(135deg,#3bea8b,#27a9ff); color:#02100a; }
+    .kv { display:flex; gap:8px; font-size:13px; color:var(--muted); margin:4px 0; word-break:break-all; }
+    .kv b { color:var(--text); font-family:ui-monospace,Menlo,monospace; }
+    .step-note { font-size:12px; color:var(--muted); margin:2px 0 12px; }
+    .ok { color:var(--mint); } .err { color:var(--red); } .warn { color:var(--amber); }
+    a { color:var(--mint); }
+    #log { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.55;
+           white-space:pre-wrap; word-break:break-all; background:#04060b; border:1px solid var(--line);
+           border-radius:8px; padding:14px; max-height:340px; overflow:auto; color:#cdd6e6; }
+    code { background:rgba(255,255,255,.06); padding:1px 6px; border-radius:4px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1><span>Vouch</span> · Wallet Spike</h1>
+    <p class="sub">命门验证：浏览器 Casper Wallet 签名 → 调通我们的 TrustRegistry / X402 合约 → 真上链（casper-js-sdk 5.x，零构建）。</p>
+
+    <div class="panel">
+      <h2>0 · 连接钱包</h2>
+      <div class="step-note">需先装 Casper Wallet 扩展（casperwallet.io），并在扩展里解锁一个 testnet 账户。</div>
+      <div class="row">
+        <button class="primary" id="btn-connect">连接 Casper Wallet</button>
+        <button id="btn-balance" disabled>在 cspr.live 查看本账户（余额/交易）</button>
+      </div>
+      <div style="margin-top:12px">
+        <div class="kv">公钥：<b id="pubkey">—</b></div>
+        <div class="kv">account-hash：<b id="acct">—</b></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>① 自转 1 X402（验证签名命门 · Key 100% 确定）</h2>
+      <div class="step-note">最纯粹的命门验证：构造一笔 CEP-18 <code>transfer</code> 给自己 → 钱包签名 → 上链。只要这笔成功，"浏览器签名调通合约"就证明了。需账户里有少量 X402 + CSPR gas。</div>
+      <button id="btn-transfer" disabled>自转 1 X402 并上链</button>
+    </div>
+
+    <div class="panel">
+      <h2>② Approve TrustRegistry（验证合约 Key spender）</h2>
+      <div class="step-note">授权 TrustRegistry 动用你的 X402（注册/雇佣的必需前置）。spender 是合约地址，验证合约 Key 构造是否正确。只需 CSPR gas。</div>
+      <button id="btn-approve" disabled>Approve 1000 X402 额度</button>
+    </div>
+
+    <div class="panel">
+      <h2>③ Register Agent（完整托管闭环 · 质押 100 X402）</h2>
+      <div class="step-note">需先完成 ②approve，且账户有 ≥100 X402。调 <code>register_agent</code> 把 100 X402 质押托管进合约 → 你成为一个新 Provider。这验证了 approve + transfer_from 托管的完整链路。</div>
+      <button id="btn-register" disabled>注册为 Provider（质押 100 X402）</button>
+    </div>
+
+    <div class="panel">
+      <h2>日志</h2>
+      <div id="log">就绪。先点「连接 Casper Wallet」。</div>
+    </div>
+  </div>
+
+  <script type="module">
+    // casper-js-sdk 5.x —— ESM 直接从 CDN import（零构建）。若 esm.sh 拉取失败，可换 https://cdn.jsdelivr.net/npm/casper-js-sdk@5.0.12/+esm
+    // casper-js-sdk 5.x —— jsdelivr +esm 是 webpack CJS bundle，末尾仅 `export{t as default}`，
+    // 所有类挂在 default 对象上（无命名导出）。故用 default import 再解构。
+    import Casper from "https://cdn.jsdelivr.net/npm/casper-js-sdk@5.0.12/+esm";
+    const {
+      Args, CLValue, Key, KeyTypeID, PublicKey, RpcClient, HttpHandler,
+      Deploy, DeployHeader, ExecutableDeployItem, StoredVersionedContractByHash, ContractHash, Duration
+    } = Casper;
+
+    // ---------- 配置（去掉 hash- 前缀的纯 hex package hash）----------
+    const NODE_RPC      = location.origin + "/rpc"; // 经本机 spike_server 代理转发，规避浏览器对公共节点的 CORS 拦截
+    const CHAIN         = "casper-test";
+    const X402_PKG      = "8c5535f6f005c6e47d54372c22eb9af6fcb8e21e098f49af7b9e88123dd07a61"; // X402 CEP-18 代币
+    const REGISTRY_PKG  = "1722de7aefcc523d5140b47b8ef89d7e4cb6ed5a112d3691f2e90eae262ab8ea"; // TrustRegistry
+    const GAS           = 5_000_000_000;      // 5 CSPR gas（写操作）
+    const DEC           = 1_000_000_000n;     // X402 9 位小数
+
+    // ---------- DOM / 日志 ----------
+    const $ = (id) => document.getElementById(id);
+    const logEl = $("log");
+    const ts = () => new Date().toTimeString().slice(0, 8);
+    function log(msg, cls) {
+      const line = `[${ts()}] ${msg}`;
+      logEl.innerHTML += `\n${cls ? `<span class="${cls}">${line}</span>` : line}`;
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(line);
+    }
+    function txLink(hash) {
+      return `成功 → <a href="https://testnet.cspr.live/transaction/${hash}" target="_blank">cspr.live 查看 ${hash.slice(0,16)}…</a>`;
+    }
+
+    let provider, pkHex;
+    const rpc = new RpcClient(new HttpHandler(NODE_RPC));
+
+    // ---------- 连接钱包 ----------
+    $("btn-connect").addEventListener("click", async () => {
+      try {
+        if (!window.CasperWalletProvider) {
+          log("未检测到 Casper Wallet 扩展。请先安装并刷新页面。", "err"); return;
+        }
+        provider = window.CasperWalletProvider();
+        log("请求连接钱包…");
+        const ok = await provider.requestConnection();
+        if (!ok) { log("用户拒绝连接。", "warn"); return; }
+        pkHex = await provider.getActivePublicKey();
+        const acct = PublicKey.fromHex(pkHex).accountHash().toPrefixedString();
+        $("pubkey").textContent = pkHex;
+        $("acct").textContent = acct;
+        log("已连接 ✓", "ok");
+        ["btn-balance","btn-transfer","btn-approve","btn-register"].forEach(id => $(id).disabled = false);
+      } catch (e) { log("连接失败：" + (e?.message || e), "err"); console.error(e); }
+    });
+
+    // ---------- 在区块浏览器查看本账户（余额/交易由 cspr.live 展示，避免只读 RPC 的版本差异）----------
+    $("btn-balance").addEventListener("click", () => {
+      if (!pkHex) return;
+      window.open("https://testnet.cspr.live/account/" + pkHex, "_blank");
+    });
+
+    // ---------- 通用：构造 Deploy → 钱包签名 → 提交 ----------
+    // Casper Wallet 的 sign() 解析的是旧 Deploy 格式（传 TransactionV1 会报 "Deploy json string parse error"），故用 Deploy。
+    function buildDeploy(pkg, entryPoint, argsMap) {
+      const session = new ExecutableDeployItem();
+      session.storedVersionedContractByHash = new StoredVersionedContractByHash(
+        ContractHash.newContract(pkg), entryPoint, Args.fromMap(argsMap)
+      );
+      const payment = ExecutableDeployItem.standardPayment(String(GAS));
+      const header = DeployHeader.default();
+      header.account = PublicKey.fromHex(pkHex);
+      header.chainName = CHAIN;
+      header.ttl = new Duration(1800000);
+      return Deploy.makeDeploy(header, payment, session);
+    }
+
+    async function signAndSend(deploy, label) {
+      log(`${label}：构造 Deploy 完成，请求钱包签名…`);
+      const deployJson = Deploy.toJSON(deploy);
+      console.log(`${label} Deploy.toJSON():`, deployJson);
+      const sig = await provider.sign(JSON.stringify(deployJson), pkHex);
+      if (sig.cancelled) { log(`${label}：用户取消签名。`, "warn"); return; }
+      console.log(`${label} wallet signature:`, sig);
+      // Casper approval 签名需带算法前缀(0x01 ed25519 / 0x02 secp256k1)；Casper Wallet 常返回 raw 64 字节，需补前缀。
+      let sigBytes = sig.signature instanceof Uint8Array ? sig.signature : new Uint8Array(sig.signature || []);
+      log(`${label}：钱包已签名（${sigBytes.length} 字节）`);
+      if (sigBytes.length === 64) {
+        const prefix = pkHex.startsWith("02") ? 0x02 : 0x01;
+        sigBytes = Uint8Array.from([prefix, ...sigBytes]);
+        log(`${label}：补算法前缀 0x0${prefix} → 65 字节`, "warn");
+      }
+      Deploy.setSignature(deploy, sigBytes, PublicKey.fromHex(pkHex));
+      log(`${label}：提交到节点…`);
+      const r = await rpc.putDeploy(deploy);
+      const hash = r?.deployHash?.toHex?.() ?? r?.deployHash ?? JSON.stringify(r);
+      log(`${label} ${txLink(String(hash))}`, "ok");
+      return r;
+    }
+
+    // ---------- ① 自转 1 X402（recipient = 自己 account，Key 100% 确定）----------
+    $("btn-transfer").addEventListener("click", async () => {
+      $("btn-transfer").disabled = true;
+      try {
+        const me = PublicKey.fromHex(pkHex).accountHash().toPrefixedString();
+        const tx = buildDeploy(X402_PKG, "transfer", {
+          recipient: CLValue.newCLKey(Key.createByType(me, KeyTypeID.Account)),
+          amount: CLValue.newCLUInt256((1n * DEC).toString()),
+        });
+        await signAndSend(tx, "① self-transfer");
+      } catch (e) { log("① 失败：" + (e?.message || e), "err"); console.error(e); }
+      $("btn-transfer").disabled = false;
+    });
+
+    // ---------- ② Approve TrustRegistry（spender = 合约 Key）----------
+    $("btn-approve").addEventListener("click", async () => {
+      $("btn-approve").disabled = true;
+      try {
+        // spender 是 TrustRegistry 合约地址。Odra Address::Contract → 链上合约 Key。
+        // 先按 Hash 类型构造；若 register 报 allowance 不足，再切换 KeyTypeID（见日志）。
+        const spender = Key.createByType("hash-" + REGISTRY_PKG, KeyTypeID.Hash);
+        const tx = buildDeploy(X402_PKG, "approve", {
+          spender: CLValue.newCLKey(spender),
+          amount: CLValue.newCLUInt256((1000n * DEC).toString()),
+        });
+        await signAndSend(tx, "② approve");
+      } catch (e) { log("② 失败：" + (e?.message || e), "err"); console.error(e); }
+      $("btn-approve").disabled = false;
+    });
+
+    // ---------- ③ Register Agent（质押 100 X402，完整托管）----------
+    $("btn-register").addEventListener("click", async () => {
+      $("btn-register").disabled = true;
+      try {
+        const tx = buildDeploy(REGISTRY_PKG, "register_agent", {
+          metadata_hash: CLValue.newCLString("vouch-spike-provider"),
+          price_per_day:  CLValue.newCLUInt256((10n  * DEC).toString()),  // 10 X402/天
+          stake_amount:   CLValue.newCLUInt256((100n * DEC).toString()),  // 质押 100 X402
+          lock_days:      CLValue.newCLUInt32(100),
+        });
+        await signAndSend(tx, "③ register_agent");
+      } catch (e) { log("③ 失败：" + (e?.message || e), "err"); console.error(e); }
+      $("btn-register").disabled = false;
+    });
+
+    const _missing = Object.entries({ Args, CLValue, Key, KeyTypeID, PublicKey, RpcClient, HttpHandler, Deploy, DeployHeader, ExecutableDeployItem, StoredVersionedContractByHash, ContractHash, Duration })
+      .filter(([, v]) => !v).map(([k]) => k);
+    if (_missing.length) log("⚠ SDK 缺少导出：" + _missing.join(", ") + "（请把这行发我）", "err");
+    else log("casper-js-sdk 5.0.12 已加载（jsdelivr +esm，Deploy API 齐全）✓", "ok");
+  </script>
+</body>
+</html>

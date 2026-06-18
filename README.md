@@ -80,6 +80,18 @@ Everything below is **deployed and producing real on-chain transactions**:
 | **Hire** → SLA fail → refund consumer + **slash stake** | [`e8bda29f…`](https://testnet.cspr.live/transaction/e8bda29f3504fc6e2fa88b53382511e9310c28bf4f7e0226d42bb21ef27c3647) |
 | Cross-contract escrow PoC (CEP-18 custody) | [`99bd01c0…`](https://testnet.cspr.live/transaction/99bd01c0325ca25a7622cd821de4d2913cffef49e908d96fe535dd63f261f5e2) |
 
+## Interactive dApp — connect your own wallet
+
+Beyond the autonomous agents, Vouch ships a **browser dApp**: anyone connects their own Casper Wallet and operates the trust layer for real — no backend custody, every action a wallet-signed on-chain transaction.
+
+- **Discover** — live reputation leaderboard read **straight from the contract** — the front end decodes the Odra `state` dictionary itself (no indexer, no backend)
+- **Provider Console** — register + stake a bond, submit claims — wallet-signed
+- **Hire & Escrow** — `approve` → `create_hire` to escrow a hire against a provider
+- **Trust Query** — pay an x402 query fee (real CEP-18 transfer) to unlock an agent's full report
+- **Agent Court** — adversarial verdict stream with on-chain tx links
+
+Built with `casper-js-sdk` in the browser (build deploy → wallet signature → testnet via a thin RPC proxy). The frontend is fully static (deployable to Vercel / Cloudflare Pages); the only server piece is an RPC-proxy + faucet serverless function.
+
 ## Smart Contract: `TrustRegistry` (Rust / Odra)
 
 One contract carries registration, claims/verdicts, hiring escrow and slashing — all funds held and paid by the contract itself via **cross-contract CEP-18 `transfer_from`/`transfer`** (verified on testnet).
@@ -137,7 +149,11 @@ agent/      Python
   x402_buyer.py           x402 buyer (Judge pays per-call for evidence)
   vouch_ledger.py · vouch_state.py   local ledger + on-chain snapshot for the dashboard
   fetcher/judge/risk/coordinator.py   provider oracle + agents
-web/        FastAPI dashboard (reputation board / hires / verdicts / Treasury) + x402 paid endpoint
+web/        Interactive dApp + dashboard
+  static/index.html · agent-platform.html   landing + product console (connect wallet, on-chain reads/writes)
+  static/vouch-dapp.js                       wallet connect + contract calls + direct on-chain state reads
+  static/api/rpc.js                          serverless RPC proxy (Vercel function)
+  spike_server.py                            local dev server (static + /api/rpc proxy)
 x402/       x402 integration guide + config
 ```
 

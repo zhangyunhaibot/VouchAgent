@@ -80,6 +80,18 @@ testnet 上两次真实运行，同一个 Provider，相反的结局：
 | **雇佣** → SLA 不达标 → 退款 Consumer + **罚没押金** | [`e8bda29f…`](https://testnet.cspr.live/transaction/e8bda29f3504fc6e2fa88b53382511e9310c28bf4f7e0226d42bb21ef27c3647) |
 | 跨合约托管 PoC（CEP-18 托管） | [`99bd01c0…`](https://testnet.cspr.live/transaction/99bd01c0325ca25a7622cd821de4d2913cffef49e908d96fe535dd63f261f5e2) |
 
+## 可交互 dApp —— 连你自己的钱包
+
+除了自主 agent，Vouch 还提供一个**浏览器 dApp**：任何人连接自己的 Casper Wallet，亲手操作信任层——无后端托管，每个动作都是钱包签名的真实链上交易。
+
+- **Discover** —— 实时信誉榜，**直接从合约读取**（前端自己解码 Odra `state` dictionary，无索引器、无后端）
+- **Provider Console** —— 注册并质押押金、提交 claim，全部钱包签名
+- **Hire & Escrow** —— `approve` → `create_hire` 托管雇佣某 Provider
+- **Trust Query** —— 支付 x402 查询费（真实 CEP-18 转账）解锁 agent 完整报告
+- **Agent Court** —— 对抗裁决流 + 链上交易链接
+
+浏览器端用 `casper-js-sdk`（构造 Deploy → 钱包签名 → 经轻量 RPC 代理上测试网）。前端纯静态（可部署到 Vercel / Cloudflare Pages），唯一的服务端是一个 RPC 代理 + faucet 的 serverless 函数。
+
 ## 智能合约：`TrustRegistry`（Rust / Odra）
 
 一个合约承载注册、claim/裁决、雇佣托管与罚没 —— 所有资金都由合约本身通过**跨合约 CEP-18 `transfer_from`/`transfer`** 持有与支付（已在 testnet 验证）。
@@ -137,7 +149,11 @@ agent/      Python
   x402_buyer.py           x402 买方（Judge 按次付费拉证据）
   vouch_ledger.py · vouch_state.py   本地账本 + 链上快照（看板用）
   fetcher/judge/risk/coordinator.py   Provider 预言机 + 各 agent
-web/        FastAPI 看板（信誉榜 / 雇佣单 / 裁决 / Treasury）+ x402 付费端点
+web/        可交互 dApp + 看板
+  static/index.html · agent-platform.html   官网 + 产品工作台（连钱包，链上读写）
+  static/vouch-dapp.js                       钱包连接 + 合约调用 + 链上状态直读
+  static/api/rpc.js                          serverless RPC 代理（Vercel 函数）
+  spike_server.py                            本地开发服务器（静态 + /api/rpc 代理）
 x402/       x402 集成指南 + 配置
 ```
 
