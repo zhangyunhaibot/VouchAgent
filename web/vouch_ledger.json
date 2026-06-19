@@ -2,6 +2,111 @@
   "events": [
     {
       "kind": "verdict",
+      "at": "2026-06-19 08:31:37",
+      "claim_id": 8,
+      "topic": "XAU/USD",
+      "accurate": true,
+      "votes_for": 3,
+      "votes_against": 0,
+      "confidence": 92,
+      "tx": "https://testnet.cspr.live/transaction/9fe68b5a19fb5213411d01bc147bd96082756ae6e9ea60847b2a8fbe6ef3fbb3"
+    },
+    {
+      "kind": "claim",
+      "at": "2026-06-19 08:29:03",
+      "claim_id": 8,
+      "agent": 0,
+      "topic": "XAU/USD",
+      "value": 4183220000,
+      "confidence": 95,
+      "tx": "https://testnet.cspr.live/transaction/39bb7504da1b5f820050c79fb5b86b6ac17ec7a9534fd76f034dd96e34d409fd"
+    },
+    {
+      "kind": "verdict",
+      "at": "2026-06-19 08:25:15",
+      "claim_id": 7,
+      "topic": "XAU/USD",
+      "accurate": true,
+      "votes_for": 3,
+      "votes_against": 0,
+      "confidence": 90,
+      "tx": "https://testnet.cspr.live/transaction/11dfee145dc0cad15d1a9044febe6b78531dfbbbf1b3134cbbf0c7bd25b61ac4"
+    },
+    {
+      "kind": "claim",
+      "at": "2026-06-19 08:22:46",
+      "claim_id": 7,
+      "agent": 0,
+      "topic": "XAU/USD",
+      "value": 4182490000,
+      "confidence": 95,
+      "tx": "https://testnet.cspr.live/transaction/607babc262b0a420e804ba67d2238a8489e94d30079f6099972992e6a5f53f7d"
+    },
+    {
+      "kind": "verdict",
+      "at": "2026-06-19 08:19:18",
+      "claim_id": 6,
+      "topic": "XAU/USD",
+      "accurate": false,
+      "votes_for": 0,
+      "votes_against": 3,
+      "confidence": 98,
+      "tx": "https://testnet.cspr.live/transaction/4a16971187e2a2b4acdc304fe9d5a269227de99b1f72a8d595d3bfa8c001c7ed"
+    },
+    {
+      "kind": "claim",
+      "at": "2026-06-19 08:17:08",
+      "claim_id": 6,
+      "agent": 0,
+      "topic": "XAU/USD",
+      "value": 4970000000,
+      "confidence": 95,
+      "tx": "https://testnet.cspr.live/transaction/ee38187f949ce994ecb9dd21d2a64e371a26465afce4c03b27cd0fa7bda9d3dd"
+    },
+    {
+      "kind": "verdict",
+      "at": "2026-06-19 08:13:52",
+      "claim_id": 5,
+      "topic": "XAU/USD",
+      "accurate": true,
+      "votes_for": 3,
+      "votes_against": 0,
+      "confidence": 90,
+      "tx": "https://testnet.cspr.live/transaction/8ed4e5b7bed1b08814c20067445b8344172b773e7bc91ade790080cfccd4003f"
+    },
+    {
+      "kind": "claim",
+      "at": "2026-06-19 08:11:46",
+      "claim_id": 5,
+      "agent": 0,
+      "topic": "XAU/USD",
+      "value": 4183630000,
+      "confidence": 95,
+      "tx": "https://testnet.cspr.live/transaction/1eefb19f8ffbe7c662d0f2338126557dee351112fd9ea834c5628125604ee9cc"
+    },
+    {
+      "kind": "verdict",
+      "at": "2026-06-19 08:07:52",
+      "claim_id": 4,
+      "topic": "XAU/USD",
+      "accurate": true,
+      "votes_for": 3,
+      "votes_against": 0,
+      "confidence": 95,
+      "tx": "https://testnet.cspr.live/transaction/68713c52889858417ac11381c3719e9791dfe511d65328c7f00bca2a10b4d650"
+    },
+    {
+      "kind": "claim",
+      "at": "2026-06-19 08:05:53",
+      "claim_id": 4,
+      "agent": 0,
+      "topic": "XAU/USD",
+      "value": 4188700000,
+      "confidence": 95,
+      "tx": "https://testnet.cspr.live/transaction/b6ef98d3782077262a2ff81e877fbc47fb6a4559266e77942f6b9a2b1996f469"
+    },
+    {
+      "kind": "verdict",
       "at": "2026-06-17 18:04:32",
       "claim_id": 3,
       "topic": "XAU/USD",
@@ -94,6 +199,6 @@
     "commission": 3000000000,
     "query_fees": 0,
     "evidence_cost": 0,
-    "gas_cost_cspr": 22.0
+    "gas_cost_cspr": 42.0
   }
 }
