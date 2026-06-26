@@ -13,12 +13,17 @@ import urllib.request
 
 NODE = "https://node.testnet.casper.network/rpc"
 DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-PORT = 8088
+PORT = int(os.environ.get("PORT", 8088))
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **k):
         super().__init__(*a, directory=DIR, **k)
+
+    def end_headers(self):
+        # 开发服务器禁用缓存，避免浏览器缓存旧静态文件
+        self.send_header("Cache-Control", "no-store, must-revalidate")
+        super().end_headers()
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
